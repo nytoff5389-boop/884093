@@ -447,26 +447,599 @@ function showTimeUp(){
   $('#up-ok').focus();
 }
 
+/* ===================== คณิตศาสตร์สำหรับโจทย์: เลขโรมัน และเลขทศนิยมแบบแม่นยำ ===================== */
+const OV='~'; /* เครื่องหมายขีดบน (ภายในระบบ) */
+const RV=[[1000,'M'],[900,'CM'],[500,'D'],[400,'CD'],[100,'C'],[90,'XC'],[50,'L'],[40,'XL'],[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']];
+const RBASE={I:1,V:5,X:10,L:50,C:100,D:500,M:1000};
+function romanSmall(n){let s='';for(const[v,r] of RV){while(n>=v){s+=r;n-=v;}}return s;}
+function toRoman(n){
+  if(n<4000) return romanSmall(n);
+  const t=Math.floor(n/1000), r=n%1000;
+  const top=romanSmall(t).split('').map(c=>c+OV).join('').replace(/I~/g,'M');
+  return top+romanSmall(r);
+}
+/* แยกเป็นโทเค็น {s,v} โดยขีดบนคูณ 1000 */
+function romanSyms(s){const out=[];for(let i=0;i<s.length;i++){const c=s[i];if(!RBASE[c]) return null;let v=RBASE[c],t=c;if(s[i+1]===OV){v*=1000;t+=OV;i++;}out.push({s:t,v});}return out;}
+function romanVal(s){const a=romanSyms(s);if(!a||!a.length) return null;let sum=0;for(let i=0;i<a.length;i++){const nx=a[i+1];if(nx&&nx.v>a[i].v) sum-=a[i].v; else sum+=a[i].v;}return sum;}
+/* กลุ่มสำหรับอธิบาย: คู่ลบ หรือตัวซ้ำกัน */
+function romanGroups(s){const a=romanSyms(s),g=[];for(let i=0;i<a.length;i++){const nx=a[i+1];
+  if(nx&&nx.v>a[i].v){g.push({s:a[i].s+nx.s,v:nx.v-a[i].v,sub:true});i++;continue;}
+  const L=g[g.length-1]; if(L&&!L.sub&&L.unit===a[i].v){L.s+=a[i].s;L.v+=a[i].v;} else g.push({s:a[i].s,v:a[i].v,unit:a[i].v});}
+  return g;}
+const fmtInt=n=>Number(n).toLocaleString('en-US');
+
+/* ---------- เลขทศนิยมแบบแม่นยำ (BigInt) ---------- */
+const P10=k=>10n**BigInt(k);
+function D(str){str=String(str).trim();let neg=false;if(str[0]==='-'){neg=true;str=str.slice(1);}const[i,f='']=str.split('.');let n=BigInt((i||'0')+f);return {n:neg?-n:n,sc:f.length,ex:true};}
+function dAdd(a,b,sg=1){const sc=Math.max(a.sc,b.sc);return {n:a.n*P10(sc-a.sc)+BigInt(sg)*b.n*P10(sc-b.sc),sc,ex:a.ex&&b.ex};}
+function dMul(a,b){return {n:a.n*b.n,sc:a.sc+b.sc,ex:a.ex&&b.ex};}
+function dDiv(a,b){const P=40;const num=a.n*P10(b.sc+P),den=b.n*P10(a.sc);let q=num/den,r=num%den;let sc=P,ex=a.ex&&b.ex&&r===0n;
+  if(r!==0n){q=q*10n+1n;sc=P+1;} /* sticky digit: บอกว่ามีเศษต่อท้าย */
+  return {n:q,sc,ex};}
+function dStr(x){let neg=x.n<0n,s=(neg?-x.n:x.n).toString();if(x.sc>0){s=s.padStart(x.sc+1,'0');s=s.slice(0,s.length-x.sc)+'.'+s.slice(s.length-x.sc);}return (neg?'-':'')+s;}
+function dShow(x){let s=dStr(x);if(s.includes('.')){ if(!x.ex){const[i,f]=s.split('.');return i+'.'+f.slice(0,6).replace(/0+$/,'')+'…';} s=s.replace(/0+$/,'').replace(/\.$/,'');}return s;}
+const dpOf=s=>{s=String(s);const i=s.indexOf('.');return i<0?0:s.length-i-1;};
+/* นับเลขนัยสำคัญของตัวเลขที่เขียน */
+function sigOf(str){
+  let s=String(str).trim().replace(/^[-+]/,'');
+  const m=s.match(/^([\d.]+)\s*(?:x|×)\s*10\^?(-?\d+)$/i); if(m) s=m[1];
+  if(s.includes('.')){ const d=s.replace('.','').replace(/^0+/,''); return {n:d.length}; }
+  const d=s.replace(/^0+/,''); const t=(d.match(/0+$/)||[''])[0].length;
+  return t?{n:d.length-t,max:d.length,amb:true}:{n:d.length};
+}
+/* ปัดตามกฎในสไลด์: >5 ขึ้น, <5 ลง, =5 พอดี ดูเลขหน้า (คู่หรือ 0 ตัดทิ้ง, คี่ปัดขึ้น), =5 แล้วมีเลขไม่ใช่ 0 ตาม ปัดขึ้น */
+function roundInfo(str,mode,k){
+  let s=String(str).replace(/^\+/,''); const neg=s[0]==='-'; if(neg) s=s.slice(1);
+  let [ip,fp='']=s.split('.'); ip=ip.replace(/^0+(?=\d)/,'');
+  const Dg=(ip+fp).split('').map(Number), p=ip.length;
+  let last; if(mode==='sig'){ const f=Dg.findIndex(d=>d!==0); last=f+k-1; } else last=p+k-1;
+  let rule, cons=null, rest='', up=false;
+  if(last>=Dg.length-1){ rule='pad'; while(Dg.length-1<last) Dg.push(0); }
+  else { cons=Dg[last+1]; rest=Dg.slice(last+2).join('');
+    const restNZ=/[1-9]/.test(rest);
+    if(cons>5){rule='gt';up=true;} else if(cons<5){rule='lt';}
+    else if(restNZ){rule='5more';up=true;}
+    else { const prev=last>=0?Dg[last]:0; rule=rest.length?'5zero':'5'; up=prev%2===1; rule+=up?'odd':'even'; }
+  }
+  let kept=Dg.slice(0,Math.max(0,last+1)); const keptStr=fmtDigits(kept,p,last);
+  let carry=false;
+  if(up){ let i=kept.length-1; while(i>=0){ if(kept[i]===9){kept[i]=0;i--;} else {kept[i]++;break;} } if(i<0){kept.unshift(1);carry=true;} }
+  let P=p+(carry?1:0), L=last+(carry?1:0);
+  if(carry&&mode==='sig'){ L--; kept.pop(); } /* 9.99 -> 10.0 คงจำนวนตัวเท่าเดิม */
+  /* ประกอบผลลัพธ์ */
+  let res, sci=null;
+  if(L>=P-1){ const intD=kept.slice(0,P).join('')||'0'; const fr=kept.slice(P,L+1).join(''); res=intD.replace(/^0+(?=\d)/,'')+(fr?'.'+fr:''); }
+  else { const intD=kept.join('')+'0'.repeat(P-1-L); res=intD.replace(/^0+(?=\d)/,''); }
+  if(mode==='sig'){ /* ถ้าเลข 0 ท้ายจำนวนเต็มไม่ได้เป็นนัยสำคัญทั้งหมด ให้เขียนแบบยกกำลังสิบ */
+    const f=kept.findIndex(d=>d!==0); const sd=kept.slice(f,L+1); const e=P-1-f;
+    if(L<P-1||(L===P-1&&sd[sd.length-1]===0&&sd.length>1)) sci=sd[0]+(sd.length>1?'.'+sd.slice(1).join(''):'')+'x10^'+e;
+  }
+  if(neg){ res='-'+res; if(sci) sci='-'+sci; }
+  return {res,sci,rule,cons,rest,keptStr,last,up};
+}
+function fmtDigits(d,p,last){ if(last<0) return '0'; const a=d.slice(0,last+1); const ip=a.slice(0,p).join('')||'0', fp=a.slice(p).join(''); return ip.replace(/^0+(?=\d)/,'')+(fp?'.'+fp:''); }
+const RULE_TH={pad:'ตัวเลขมีไม่ถึงจำนวนที่ต้องการ จึงเติม 0 ต่อท้ายให้ครบ',gt:'มากกว่า 5 จึงปัดขึ้น',lt:'น้อยกว่า 5 จึงปัดลง (ตัดทิ้ง)',
+  '5more':'เท่ากับ 5 และมีเลขที่ไม่ใช่ 0 ตามหลัง จึงปัดขึ้นเสมอ','5even':'เท่ากับ 5 พอดี และเลขหน้า 5 เป็นเลขคู่หรือ 0 จึงตัด 5 ทิ้งเฉยๆ','5odd':'เท่ากับ 5 พอดี และเลขหน้า 5 เป็นเลขคี่ จึงปัดเลขหน้าขึ้น',
+  '5zeroeven':'เท่ากับ 5 และตามด้วย 0 (นับเหมือนไม่มีเลขต่อท้าย) เลขหน้า 5 เป็นเลขคู่หรือ 0 จึงตัดทิ้ง','5zeroodd':'เท่ากับ 5 และตามด้วย 0 (นับเหมือนไม่มีเลขต่อท้าย) เลขหน้า 5 เป็นเลขคี่ จึงปัดขึ้น'};
+
+/* ---------- ทำให้คำตอบเป็นรูปมาตรฐานก่อนเทียบ ---------- */
+const SUP={'⁰':'0','¹':'1','²':'2','³':'3','⁴':'4','⁵':'5','⁶':'6','⁷':'7','⁸':'8','⁹':'9','⁻':'-'};
+function normNum(u){
+  let s=String(u==null?'':u).toLowerCase().replace(/\s+/g,'');
+  s=s.replace(/(มิลลิลิตร|มล\.?|มิลลิกรัม|กรัม|ตัว|ml|mg|g)$/,'');
+  s=s.replace(/[−–—]/g,'-').replace(/[×✕✖*·]/g,'x').replace(/÷/g,'/');
+  s=s.replace(/[⁰¹²³⁴⁵⁶⁷⁸⁹⁻]+/g,m=>'^'+m.split('').map(c=>SUP[c]).join(''));
+  s=s.replace(/(\d),(?=\d{3}(\D|$))/g,'$1');
+  s=s.replace(/^\+/,'').replace(/^\./,'0.');
+  let m=s.match(/^(-?[\d.]+)e\+?(-?\d+)$/); if(m) return m[1]+'x10^'+m[2];
+  m=s.match(/^(-?[\d.]+)x10\^?\(?\+?(-?\d+)\)?$/); if(m) return m[1]+'x10^'+m[2];
+  return s;
+}
+function normRange(u){ let s=normNum(u).replace(/(ถึง|to|~|ประมาณ)/g,'-').replace(/-+/g,'-'); return s; }
+function normRoman(u){
+  let s=String(u==null?'':u).normalize('NFD').toUpperCase().replace(/\s+/g,'');
+  s=s.replace(/[̄̅‾¯]/g,OV).replace(/_([IVXLCDM])/g,'$1'+OV).replace(/~+/g,OV);
+  s=s.replace(new RegExp('I'+OV,'g'),'M');
+  return s;
+}
+const romanHTML=s=>String(s).replace(/([IVXLCDM])~/g,'<span class="ov">$1</span>');
+function sciHTML(s){ return String(s).replace(/x10\^(-?\d+)/g,(m,e)=>' × 10<sup>'+e.replace('-','−')+'</sup>'); }
+
+/* ===================== คลังโจทย์บทที่ 1: ตัวสร้างโจทย์ + ชุดจากชีทและสไลด์ ===================== */
+const QT={
+  r2a:{n:'เลขโรมัน → อารบิก',pg:3},
+  a2r:{n:'อารบิก → เลขโรมัน',pg:4},
+  rcalc:{n:'คำนวณเลขโรมัน',pg:7},
+  sfcount:{n:'นับเลขนัยสำคัญ',pg:8},
+  record:{n:'บันทึกค่าจากการวัด',pg:10},
+  round:{n:'ปัดเลขนัยสำคัญ',pg:11},
+  sfcalc:{n:'คำนวณตามหลักเลขนัยสำคัญ',pg:14},
+  concept:{n:'หลักการและนิยาม',pg:3}
+};
+const LVN={easy:'ง่าย',mid:'ปานกลาง',hard:'ยาก'};
+const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const uniqBy=(a,f)=>{const s=new Set();return a.filter(x=>{const k=f(x);if(s.has(k))return false;s.add(k);return true;});};
+const thSup=e=>String(e).split('').map(c=>({'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'}[c])).join('');
+const showAns=s=>/x10\^/.test(s)?sciHTML(s):/[IVXLCDM]/.test(s)?romanHTML(s):esc(s);
+
+/* field: {kind:'num'|'roman'|'rnum'|'range', acc:[normalized], show:'display', tol?} */
+function F(kind,show,alts=[],extra={}){
+  const nz=kind==='roman'?normRoman:kind==='range'?normRange:normNum;
+  const acc=[show,...alts].map(x=>kind==='rnum'?(/[IVXLCDM]/.test(x)?normRoman(x):normNum(x)):nz(x));
+  return Object.assign({kind,show,acc:[...new Set(acc)]},extra);
+}
+function mkQ(t,lv,stem,big,fields,exp,o={}){ return Object.assign({t,lv,stem,big,fields,exp,id:t+'|'+big+'|'+(o.sub||'')},o); }
+/* ตัวเลือกช้อยส์: ใส่คำตอบถูก + ตัวลวงจากข้อผิดพลาดที่พบบ่อย */
+function withMC(q,wrongs){
+  const right=q.fields[0].show;
+  const ws=uniqBy(wrongs.filter(w=>w!=null&&w!==''&&normNum(w)!==normNum(right)&&normRoman(w)!==normRoman(right)),x=>x).slice(0,3);
+  if(ws.length<3&&q.fields[0].kind!=='roman'&&/^-?[\d,]*\.?\d+$/.test(right)){ const dp=dpOf(right.replace(/,/g,'')), u=Math.pow(10,-dp), v=+right.replace(/,/g,'');
+    for(const k of shuf([1,-1,2,-2,3,10,-10])){ if(ws.length>=3) break; const c=(v+k*u).toFixed(dp); if(+c>=0&&c!==right&&!ws.includes(c)) ws.push(c); } }
+  if(ws.length<3) return q;
+  const opts=shuf([right,...ws]); q.mc={opts,ans:opts.indexOf(right)}; return q;
+}
+
+/* ---------- 1. โรมัน → อารบิก ---------- */
+function bR2A(r,lv,o={}){
+  const v=romanVal(r), g=romanGroups(r);
+  const exp=[`แยกเป็นกลุ่มจากซ้ายไปขวา ถ้าตัวเล็กอยู่หน้าตัวใหญ่ให้จับคู่แล้วลบ (หลักการลด) ส่วนตัวที่ขีดบนให้คูณ 1000`,
+    g.map(x=>`${romanHTML(x.s)} = ${fmtInt(x.v)}${x.sub?' (ลบ)':''}`).join(' · '),
+    `รวม ${g.map(x=>fmtInt(x.v)).join(' + ')} = <b>${fmtInt(v)}</b>`];
+  const add=romanSyms(r).reduce((s,x)=>s+x.v,0);
+  const q=mkQ('r2a',lv||(v>=4000?'hard':/(IV|IX|XL|XC|CD|CM)/.test(r)?'mid':'easy'),'จงเขียนเลขโรมันต่อไปนี้ให้เป็นเลขอารบิก',r,[F('num',String(v),[fmtInt(v)])],exp,o);
+  q.bigHTML=romanHTML(r);
+  return withMC(q,[String(add),String(v+pick([1,-1,10,-10])),String(v+pick([100,-100,1000,5,-5])),String(v>20?v-2*pick([1,10]):v+2)].map(x=>fmtInt(+x)));
+}
+/* ---------- 2. อารบิก → โรมัน ---------- */
+function bA2R(n,lv,o={}){
+  const r=toRoman(n); const exp=[];
+  if(n>=4000){ const t=Math.floor(n/1000), rem=n%1000;
+    exp.push(`จำนวนเกิน 3,999 ให้แยกก้อนหลักพัน: ${fmtInt(n)} = ${fmtInt(t)} × 1,000${rem?` + ${fmtInt(rem)}`:''}`);
+    exp.push(`${fmtInt(t)} เขียนเป็น ${romanSmall(t)} แล้วขีดบนทุกตัวเพื่อคูณ 1,000 → ${romanHTML(romanSmall(t).split('').map(c=>c+OV).join(''))}${/I/.test(romanSmall(t))?` และ ${romanHTML('I~')} มีค่า 1,000 จึงเขียนเป็น M แทน → ${romanHTML(r.slice(0,r.length-romanSmall(rem).length))}`:''}`);
+    if(rem) exp.push(`ส่วนที่เหลือ ${fmtInt(rem)} = ${placeParts(rem)}`);
+  } else exp.push(`แยกตามหลัก: ${fmtInt(n)} = ${placeParts(n)}`);
+  exp.push(`ต่อกันจากมากไปน้อย ได้ <b>${romanHTML(r)}</b> (ตัวเดียวกันซ้ำได้ไม่เกิน 3 ตัว ตัวลบมีแค่ I X C)`);
+  const q=mkQ('a2r',lv||(n>=4000?'hard':/(IV|IX|XL|XC|CD|CM)/.test(r)?'mid':'easy'),'จงเขียนเลขอารบิกต่อไปนี้ให้เป็นเลขโรมัน',fmtInt(n),[F('roman',r,n>=4000?[r.replace(/M(?=[IVXLCDM]~)/g,'I~')]:[])],exp,o);
+  q.hint='พิมพ์ตัวพิมพ์เล็กหรือใหญ่ก็ได้ ตัวที่มีขีดบนให้กดปุ่ม ¯ หลังตัวอักษร หรือพิมพ์ _ นำหน้า เช่น _V';
+  const addv=romanSmall(n%1000).replace(/CM/,'DCCCC').replace(/CD/,'CCCC').replace(/XC/,'LXXXX').replace(/XL/,'XXXX').replace(/IX/,'VIIII').replace(/IV/,'IIII');
+  const pre=r.slice(0,r.length-romanSmall(n%1000).length);
+  return withMC(q,[pre+addv,toRoman(n+1),toRoman(Math.max(1,n-1)),toRoman(n+10),r.split('').reverse().join('').replace(/~([IVXLCDM])/g,'$1~'),n%100===99?pre+romanSmall(n%1000-99)+'IC':null]);
+}
+function placeParts(n){ const parts=[]; for(const p of [1000,100,10,1]){ const d=Math.floor(n/p)%10; if(p===1000&&n>=1000){parts.push(`${fmtInt(Math.floor(n/1000)*1000)} (${romanHTML(romanSmall(Math.floor(n/1000)*1000))})`);continue;} if(d) parts.push(`${d*p} (${romanHTML(romanSmall(d*p))})`);} return parts.join(' + '); }
+
+/* ---------- 3. คำนวณเลขโรมัน ---------- */
+function bRCalc(expr,lv,o={}){
+  const tk=expr.replace(/\s/g,'').split(/([+\-×÷x])/).filter(Boolean);
+  let vals=[],ops=[];tk.forEach((t,i)=>i%2?ops.push(t.replace('x','×')):vals.push(t));
+  const nums=vals.map(romanVal); let v=nums[0]; ops.forEach((op,i)=>{const b=nums[i+1]; v=op==='+'?v+b:op==='-'?v-b:op==='×'?v*b:v/b;});
+  const disp=vals.map((r,i)=>romanHTML(r)+(ops[i]?` ${ops[i]==='-'?'−':ops[i]} `:'')).join('');
+  const arab=nums.map((n,i)=>fmtInt(n)+(ops[i]?` ${ops[i]==='-'?'−':ops[i]} `:'')).join('');
+  const exp=[`แปลงเลขโรมันเป็นเลขอารบิกก่อน: ${vals.map((r,i)=>`${romanHTML(r)} = ${fmtInt(nums[i])}`).join(' · ')}`,
+    `คำนวณ ${arab} = <b>${fmtInt(v)}</b>`, `ถ้าตอบเป็นเลขโรมันจะได้ ${romanHTML(toRoman(v))}`];
+  const q=mkQ('rcalc',lv||(ops.length>1||nums.some(n=>n>=4000)?'hard':ops.some(x=>x==='×'||x==='÷')?'mid':'easy'),'จงคำนวณหาคำตอบ (ตอบเป็นเลขอารบิกหรือเลขโรมันก็ได้)',expr,[F('rnum',String(v),[fmtInt(v),toRoman(v)])],exp,o);
+  q.bigHTML=disp;
+  const wrongAdd=nums.reduce((s,n,i)=>i?s+(ops[i-1]==='-'?n:ops[i-1]==='+'?-n:0):n,0);
+  return withMC(q,[fmtInt(v+pick([1,-1])),fmtInt(v+pick([10,-10,100])),fmtInt(Math.abs(wrongAdd)||v+2),fmtInt(v+pick([5,-5,50]))]);
+}
+/* ---------- 4. นับเลขนัยสำคัญ ---------- */
+function bSFCount(numStr,lv,o={}){
+  const sg=sigOf(numStr), isSci=/x10/.test(numStr), mant=isSci?numStr.split('x')[0]:numStr;
+  const exp=[];
+  if(isSci) exp.push(`เขียนแบบเลขยกกำลังสิบ ให้นับเฉพาะตัวเลขด้านหน้า ×10 คือ ${esc(mant)}`);
+  const s=mant;
+  if(s.includes('.')){
+    const lead=(s.match(/^0*\.?0*/)||[''])[0].replace('.','').length;
+    if(/^0/.test(s)&&lead) exp.push(`เลข 0 ที่นำหน้าเลขตัวแรก (${lead} ตัว) ไม่นับ (ข้อ 4)`);
+    if(/[1-9]0+[1-9]/.test(s.replace('.',''))) exp.push('เลข 0 ที่อยู่ระหว่างเลขนัยสำคัญ นับด้วย (ข้อ 2)');
+    if(/\.\d*[1-9]0+$/.test(s)||/\.0+$/.test(s)&&/[1-9]/.test(s)) exp.push('เลข 0 ที่อยู่ท้ายและอยู่หลังจุดทศนิยม นับด้วย (ข้อ 3)');
+  } else if(sg.amb){ exp.push(`เป็นจำนวนเต็มที่มี 0 ต่อท้าย ${sg.max-sg.n} ตัว ซึ่งอาจเป็นหรือไม่เป็นเลขนัยสำคัญก็ได้ (ข้อ 5) จึงตอบเป็นช่วง`); }
+  else if(/[1-9]0+[1-9]/.test(s)) exp.push('เลข 0 ที่อยู่ระหว่างเลขนัยสำคัญ นับด้วย (ข้อ 2)');
+  exp.push(`วิธีนับเร็ว: เริ่มจากเลขที่ไม่ใช่ 0 ตัวแรกทางซ้าย นับไปจนสุดทางขวา → <b>${sg.amb?`${sg.n} ถึง ${sg.max} ตัว`:sg.n+' ตัว'}</b>`);
+  const show=sg.amb?`${sg.n}-${sg.max}`:String(sg.n);
+  const q=mkQ('sfcount',lv||(isSci||sg.amb?'hard':/^0|0$|[1-9]0+[1-9]/.test(s)?'mid':'easy'),'จงระบุจำนวนเลขนัยสำคัญของจำนวนต่อไปนี้',numStr,[F(sg.amb?'range':'num',show,sg.amb?[`${sg.n}ถึง${sg.max}`]:[],{unit:'ตัว'})],exp,o);
+  q.bigHTML=sciHTML(esc(numStr)); q.hint=sg.amb||Math.random()<.3?'ถ้าบอกจำนวนแน่นอนไม่ได้ ให้ตอบเป็นช่วง เช่น 2-4':'';
+  const all=s.replace('.','').length;
+  const w=sg.amb?[String(sg.n),String(sg.max),`${sg.n}-${sg.max+1}`,`${Math.max(1,sg.n-1)}-${sg.max}`]:[String(all),String(sg.n+1),String(Math.max(1,sg.n-1)),String(sg.n+2),`${sg.n}-${sg.n+2}`];
+  return withMC(q,w);
+}
+/* ---------- 5. ปัดเลขนัยสำคัญ ---------- */
+function bRound(numStr,k,lv,o={}){
+  const R=roundInfo(numStr,'sig',k); const main=R.sci&&!/\./.test(R.res)?R.sci:R.res;
+  const alts=[R.res,R.sci].filter(Boolean);
+  const exp=[`ต้องการเลขนัยสำคัญ ${k} ตัว นับจากเลขที่ไม่ใช่ 0 ตัวแรกทางซ้าย เก็บไว้ ${esc(R.keptStr)}`];
+  if(R.rule==='pad') exp.push(RULE_TH.pad);
+  else exp.push(`ตัวเลขที่พิจารณา (ตัวแรกที่ถูกตัด) คือ <b>${R.cons}</b>${R.rest?` ตามด้วย ${R.rest}`:''} → ${RULE_TH[R.rule]}`);
+  if(R.sci) exp.push(`จำนวนเต็มที่ต้องตัดหลักทิ้ง ให้เขียนแบบยกกำลังสิบเพื่อบอกจำนวนเลขนัยสำคัญให้ชัด: ${sciHTML(R.sci)}${R.res!==R.sci?` (หรือ ${esc(R.res)})`:''}`);
+  exp.push(`คำตอบ <b>${showAns(main)}</b>`);
+  const q=mkQ('round',lv||(R.rule.startsWith('5')?(R.rule==='5more'||R.rule.includes('zero')?'hard':'mid'):R.sci||/^0\.0/.test(numStr)?'hard':'easy'),`จงทำให้มีเลขนัยสำคัญ ${k} ตัว ตามกฎการปัดเลข`,numStr,[F('num',main,alts)],exp,Object.assign({sub:'k'+k},o));
+  q.bigHTML=`${esc(numStr)} <small>→ ${k} ตัว</small>`; if(R.sci) q.hint='เขียนแบบยกกำลังสิบได้ เช่น 2.4x10^3';
+  const trunc=roundInfo(numStr,'sig',k); const tStr=trunc.keptStr;
+  const halfUp=(()=>{ if(!R.rule.startsWith('5')||R.up) return null; return roundInfo(numStr.replace(/5(0*)$/,'6$1'),'sig',k).res; })();
+  return withMC(q,[tStr!==R.res?tStr:null,halfUp,roundInfo(numStr,'sig',k+1).res,k>1?roundInfo(numStr,'sig',k-1).res:null,R.sci?R.res.slice(0,k+1):null,(R.res.includes('.')?R.res+'0':R.res+'.0')]);
+}
+/* ---------- 6. คำนวณตามหลักเลขนัยสำคัญ ---------- */
+function bSFCalc(expr,lv,o={}){
+  const clean=expr.replace(/[()\s]/g,'').replace(/−/g,'-').replace(/x/g,'×');
+  const tk=clean.split(/([+\-×÷])/).filter(Boolean); const nums=[],ops=[]; tk.forEach((t,i)=>i%2?ops.push(t):nums.push(t));
+  const isMul=ops.some(x=>x==='×'||x==='÷');
+  let acc=D(nums[0]); ops.forEach((op,i)=>{const b=D(nums[i+1]); acc=op==='+'?dAdd(acc,b):op==='-'?dAdd(acc,b,-1):op==='×'?dMul(acc,b):dDiv(acc,b);});
+  const raw=dStr(acc), rawShow=dShow(acc);
+  let R,exp=[`คำนวณตามปกติก่อน: ${esc(expr.replace(/\*/g,'×').replace(/-/g,'−'))} = ${esc(rawShow)}`];
+  if(isMul){ const sg=nums.map(n=>sigOf(n).n), m=Math.min(...sg);
+    exp.push(`เป็นการคูณหาร ผลลัพธ์ต้องมีจำนวนเลขนัยสำคัญเท่ากับตัวที่มีน้อยที่สุด: ${nums.map((n,i)=>`${n} มี ${sg[i]} ตัว`).join(' · ')} → ใช้ <b>${m} ตัว</b>`);
+    R=roundInfo(raw,'sig',m);
+  } else { const dp=nums.map(dpOf), m=Math.min(...dp);
+    exp.push(`เป็นการบวกลบ ผลลัพธ์ต้องมีตำแหน่งทศนิยมเท่ากับตัวที่มีน้อยที่สุด: ${nums.map((n,i)=>`${n} มี ${dp[i]} ตำแหน่ง`).join(' · ')} → ใช้ <b>${m} ตำแหน่ง</b>`);
+    R=roundInfo(raw,'dp',m);
+  }
+  if(R.rule!=='pad') exp.push(`ตัวเลขที่พิจารณาคือ ${R.cons} → ${RULE_TH[R.rule]} (ปัดครั้งเดียวตอนท้าย)`); else exp.push(RULE_TH.pad);
+  const main=R.sci&&!/\./.test(R.res)?R.sci:R.res, alts=[R.res,R.sci].filter(Boolean);
+  if(R.sci) exp.push(`ตัด 0 ท้ายจำนวนเต็มแล้วบอกจำนวนเลขนัยสำคัญไม่ชัด จึงเขียนเป็น ${sciHTML(R.sci)} (หรือ ${esc(R.res)})`);
+  exp.push(`คำตอบ <b>${showAns(main)}</b>`);
+  const q=mkQ('sfcalc',lv||(nums.length>2||R.sci?'hard':isMul?'mid':'easy'),'จงคำนวณผลลัพธ์ตามหลักเลขนัยสำคัญ',expr,[F('num',main,alts)],exp,o);
+  q.bigHTML=esc(expr.replace(/-/g,'−').replace(/\*/g,'×')); q.rule=R.rule; if(R.sci) q.hint='เขียนแบบยกกำลังสิบได้ เช่น 1.1x10^2';
+  const other=isMul?roundInfo(raw,'dp',Math.min(...nums.map(dpOf))).res:roundInfo(raw,'sig',Math.min(...nums.map(n=>sigOf(n).n))).res;
+  const short=rawShow.replace('…','');
+  return withMC(q,[short.length<12?short:short.slice(0,10),other,isMul?roundInfo(raw,'sig',Math.min(...nums.map(n=>sigOf(n).n))+1).res:roundInfo(raw,'dp',Math.min(...nums.map(dpOf))+1).res,roundInfo(raw,'sig',1).res]);
+}
+/* ---------- 7. บันทึกค่าจากการวัด ---------- */
+function bCylinder(step,v,lv,o={}){
+  const sdp=dpOf(step), rdp=sdp+1, res=Number((step/10).toFixed(rdp));
+  const vS=v.toFixed(Math.max(0,step>=10?0:rdp)), readTick=Math.floor(v/step+1e-9)*step, est=+(v-readTick).toFixed(Math.max(0,rdp));
+  const readS=readTick.toFixed(sdp), estS=step>=10?String(Math.round(est)):est.toFixed(rdp), rep=step>=10?String(Math.round(v)):v.toFixed(rdp);
+  const sf=sigOf(rep).n, unitTol=step>=10?1:Math.pow(10,-rdp);
+  const near=x=>[x-unitTol,x+unitTol].map(y=>step>=10?String(Math.round(y)):y.toFixed(rdp));
+  const resS=step>=10?'1':String(res);
+  const fields=[F('num',String(step),[],{lab:'กระบอกตวงมี scale ต่ำสุด',unit:'mL'}),F('num',resS,[],{lab:'ค่าที่สามารถอ่านได้ละเอียดถึง',unit:'mL'}),
+    F('num',readS,[],{lab:'เลขจากการอ่านค่า (ขีด)',unit:'mL'}),F('num',estS,near(est).filter(x=>+x>=0),{lab:'เลขจากค่าประมาณ',unit:'mL'}),
+    F('num',rep,near(v),{lab:'รายงานค่า',unit:'mL'}),F('num',String(sf),[],{lab:'จำนวนเลขนัยสำคัญ',unit:'ตัว'})];
+  const exp=[`ขีดที่ละเอียดที่สุดห่างกัน ${step} mL จึงอ่านได้แน่นอนถึงหลักนั้น แล้วประมาณเพิ่มอีก 1 หลักที่ละเอียดกว่า (ถึง ${resS} mL)`,
+    `ระดับของเหลว (ดูท้องโค้งของผิวน้ำ) อยู่เหนือขีด ${readS} จึงได้เลขจากการอ่านค่า ${readS} mL`,
+    `ประมาณส่วนที่เกินขีดได้ ${estS} mL (เป็นตัวเลขที่ไม่แน่นอน ยอมให้คลาดได้ ±${step>=10?1:unitTol} ในหลักสุดท้าย)`,
+    `รายงานค่า = ${readS} + ${estS} = <b>${rep} mL</b> มีเลขนัยสำคัญ ${sf} ตัว`];
+  const q=mkQ('record',lv||(step<1?'hard':step===1?'mid':'easy'),'จงระบุผลของการวัดปริมาตรและจำนวนเลขนัยสำคัญจากภาพ','กระบอกตวง',fields,exp,Object.assign({sub:step+'@'+v},o));
+  q.fig={k:'cyl',step,v}; return q;
+}
+function bRecord(kind,a,b,lv,o={}){
+  if(kind==='bal'){ /* a=ความไว (g), b=มวลเป็น mg */
+    const dp=dpOf(a)+1, g=(b/1000).toFixed(dp);
+    const exp=[`เครื่องชั่งอ่านได้ละเอียดถึง ${a} g (${dpOf(a)} ตำแหน่ง) ต้องบันทึกถึงหลักนั้น แล้วเพิ่มตัวประมาณอีก 1 หลัก = ${dp} ตำแหน่ง`,
+      `${b} mg = ${b/1000} g → เขียนให้มีทศนิยม ${dp} ตำแหน่ง = <b>${g} g</b>`, `ไม่บันทึกละเอียดเกินกว่าที่เครื่องชั่งทำได้ เช่น ${(b/1000).toFixed(dp+1)} g ถือว่าเกินจริง`];
+    const q=mkQ('record',lv||(dp>=4?'mid':'easy'),`เครื่องชั่งมีความไว (sensitivity) ${a} กรัม ชั่งสารได้ ${b} มิลลิกรัม ต้องบันทึกผลเป็นกี่กรัม`,`${b} mg @ ${a} g`,[F('num',g,[],{unit:'g'})],exp,o);
+    q.bigHTML=`${b} mg <small>· เครื่องชั่ง ${a} g</small>`;
+    return withMC(q,[(b/1000).toFixed(dp+1),(b/1000).toFixed(Math.max(0,dp-1)),String(b/1000),(b/100).toFixed(dp-1)]);
+  }
+  /* kind==='vol': a=scale ต่ำสุด (mL), b=ปริมาตรที่ตวง (ตรงขีดพอดี) */
+  const dp=dpOf(a)+1, s=a>=10?String(b):Number(b).toFixed(dp);
+  const exp=[`กระบอกตวงอ่านค่าได้ต่ำสุด ${a} mL บันทึกถึงหลักนั้นแล้วเพิ่มค่าประมาณอีก 1 หลัก`,
+    `ระดับตรงขีด ${b} พอดี ค่าประมาณจึงเป็น 0 แต่ต้องเขียนไว้ด้วย → <b>${s} mL</b>`];
+  const q=mkQ('record',lv||'mid',`ตวงสาร ${b} mL ด้วยกระบอกตวงที่อ่านค่าได้ต่ำสุด ${a} mL (ระดับตรงขีดพอดี) ต้องบันทึกผลอย่างไร`,`${b} mL @ ${a}`,[F('num',s,[],{unit:'mL'})],exp,o);
+  q.bigHTML=`${b} mL <small>· ขีดต่ำสุด ${a} mL</small>`;
+  return withMC(q,[String(b),Number(b).toFixed(dp+1),Number(b).toFixed(Math.max(1,dp-1)),Number(b).toFixed(dp+2)]);
+}
+/* ---------- 8. หลักการ (ช้อยส์อย่างเดียว) ---------- */
+const CONCEPT=[
+  ['ระบบเลขโรมันมีสัญลักษณ์พื้นฐานกี่ตัว (รวม ss)',['8 ตัว','7 ตัว','6 ตัว','10 ตัว'],'ss = ½ และ I V X L C D M รวมเป็น 8 ตัว ระบบเลขโรมันไม่มีสัญลักษณ์แทน 0','easy',3],
+  ['ss ในใบสั่งยามีค่าเท่าไร',['½','1','5','50'],'ss มาจาก semis (ภาษาละติน แปลว่าครึ่ง) ใช้แทน ½','easy',3],
+  ['ข้อใดคือตัวเลขโรมันที่ใช้เป็น "ตัวลบ" ได้',['I, X และ C','I, V และ X','V, L และ D','ทุกตัว'],'ตัวลบมีแค่ I X C และลบได้จากเลขที่ค่าถัดไป 2 ค่าเท่านั้น (I จาก V X, X จาก L C, C จาก D M)','easy',4],
+  ['เขียน 99 เป็นเลขโรมันข้อใดถูก',['XCIX','IC','LXXXXIX','XCVIIII'],'I ลบได้แค่จาก V และ X ห้ามเขียน IC ต้องเป็น 90 + 9 = XC + IX = XCIX','mid',4],
+  ['หลักการเพิ่มของเลขโรมัน ตัวเดียวกันเขียนซ้ำได้ไม่เกินกี่ตัว',['3 ตัว','2 ตัว','4 ตัว','ไม่จำกัด'],'เขียนซ้ำได้ไม่เกิน 3 ตัว เช่น 40 ไม่เขียน XXXX แต่เขียน XL','easy',4],
+  ['ขีด "−" บนตัวอักษรโรมันหมายถึงอะไร',['คูณค่าด้วย 1,000','คูณค่าด้วย 100','ลบออก 1,000','ใช้แทนเลขลบ'],'ตัวที่มีขีดบนมีค่าเพิ่มขึ้น 1,000 เท่า เช่น V̄ = 5,000','easy',5],
+  ['X̄ มีค่าเท่าไร',['10,000','1,000','100,000','10'],'X = 10 ขีดบนคูณ 1,000 จึงได้ 10,000','easy',5],
+  ['เลขนัยสำคัญใช้เพื่ออะไร',['บอกความละเอียดของเครื่องมือวัดและความเที่ยงของข้อมูล','บอกหน่วยของการวัด','ทำให้ตัวเลขดูสวยงาม','บอกค่าที่แท้จริงทุกครั้ง'],'ใช้ระบุค่าประมาณ บ่งบอกความละเอียดของอุปกรณ์ที่ใช้วัด และแสดงความแม่นยำภายในความเที่ยงของเครื่องมือ','easy',7],
+  ['ตัวเลขตัวสุดท้ายของค่าที่อ่านจากการวัดเรียกว่าอะไร',['ตัวเลขที่ไม่แน่นอน (uncertainty) ได้จากการกะประมาณ','ตัวเลขที่แน่นอน (certainty)','ตัวเลขที่ไม่ใช่เลขนัยสำคัญ','ตัวเลขที่ต้องตัดทิ้งเสมอ'],'ตัวเลขทุกตัวที่บันทึกเป็นเลขนัยสำคัญ แต่ตัวสุดท้ายเป็นค่าที่กะประมาณเองเพราะอยู่ระหว่างขีด','mid',7],
+  ['เครื่องมือที่มีขีดละเอียดกว่าจะให้ผลอย่างไร',['ได้ตัวเลขที่มีเลขนัยสำคัญมากกว่า','ได้เลขนัยสำคัญน้อยกว่า','จำนวนเลขนัยสำคัญเท่าเดิม','อ่านค่าไม่ได้'],'เช่น กระบอกตวงขีดละ 1 อ่านได้ 78.5 (3 ตัว) แต่บีกเกอร์ขีดละ 10 อ่านได้ 78 (2 ตัว)','easy',8],
+  ['เลข 0 ในตำแหน่งใด "ไม่" นับเป็นเลขนัยสำคัญ',['0 ที่นำหน้าเลขตัวแรก เช่น 0.0023','0 ที่อยู่ระหว่างเลข เช่น 202','0 ท้ายหลังจุดทศนิยม เช่น 12.50','0 ในเลขหน้า ×10 เช่น 2.50 ×10³'],'0 ที่นำหน้าเลขตัวแรกทั้งซ้ายและหลังจุดทศนิยมไม่มีนัยสำคัญ (ข้อ 4)','mid',8],
+  ['ทำไม 2500 จึงบอกจำนวนเลขนัยสำคัญแน่นอนไม่ได้',['0 ท้ายจำนวนเต็มอาจเป็นหรือไม่เป็นเลขนัยสำคัญก็ได้','เพราะไม่มีจุดทศนิยมจึงไม่มีเลขนัยสำคัญ','เพราะ 0 ทุกตัวไม่นับ','เพราะเป็นเลขคู่'],'2500 มีได้ 2 ถึง 4 ตัว ถ้าต้องการให้ชัดให้เขียนเป็น 2.5×10³ (2 ตัว) 2.50×10³ (3 ตัว) หรือ 2.500×10³ (4 ตัว)','mid',8],
+  ['เครื่องชั่งความไว 0.001 g ชั่งสาร 60 mg ต้องบันทึกอย่างไร',['0.0600 g','0.060 g','0.06000 g','0.06 g'],'บันทึกถึงหลักที่เครื่องชั่งบอกได้ (3 ตำแหน่ง) แล้วเพิ่มตัวประมาณอีก 1 หลัก = 0.0600 g ส่วน 0.06000 g ละเอียดเกินจริง','mid',10],
+  ['การบวกและการลบ ผลลัพธ์ต้องมีอะไรเท่ากับตัวที่น้อยที่สุด',['จำนวนตำแหน่งหลังจุดทศนิยม','จำนวนเลขนัยสำคัญ','จำนวนหลักทั้งหมด','จำนวนเลข 0'],'บวกลบดูตำแหน่งทศนิยมน้อยที่สุด ส่วนคูณหารดูจำนวนเลขนัยสำคัญน้อยที่สุด','easy',14],
+  ['การคูณและการหาร ผลลัพธ์ต้องมีอะไรเท่ากับตัวที่น้อยที่สุด',['จำนวนเลขนัยสำคัญ','จำนวนตำแหน่งทศนิยม','จำนวนหลักหน้าจุด','จำนวนเลขคี่'],'คูณหารให้ผลลัพธ์มีจำนวนเลขนัยสำคัญเท่ากับตัวที่มีเลขนัยสำคัญน้อยที่สุด','easy',14],
+  ['ควรปัดตัวเลขตอนไหนเมื่อคำนวณหลายขั้น',['ปัดตอนท้ายครั้งเดียว','ปัดทุกขั้นตอน','ปัดก่อนเริ่มคำนวณ','ไม่ต้องปัดเลย'],'คำนวณตามปกติให้เสร็จก่อน แล้วค่อยปัดตอนท้ายครั้งเดียวเพื่อไม่ให้ความคลาดเคลื่อนสะสม','mid',16],
+  ['2.85 ต้องการเลขนัยสำคัญ 2 ตัว ใช้กฎข้อใด',['5 พอดีไม่มีเลขตาม เลขหน้าเป็นคู่ จึงตัดทิ้งได้ 2.8','5 ขึ้นไปปัดขึ้นเสมอ ได้ 2.9','ตัดทิ้งทุกกรณี ได้ 2.8','เลขหน้าเป็นคู่ ปัดขึ้นได้ 2.9'],'ตัวเลขที่พิจารณาคือ 5 และไม่มีเลขต่อท้าย เลขหน้า 5 คือ 8 เป็นเลขคู่ จึงตัด 5 ทิ้งเฉยๆ ได้ 2.8','hard',11],
+  ['ตัวเลขที่พิจารณาคือ 5 และมีเลขที่ไม่ใช่ 0 ตามหลัง ต้องทำอย่างไร',['ปัดขึ้นเสมอ','ดูเลขหน้าว่าคู่หรือคี่','ตัดทิ้งเสมอ','ปัดลงเสมอ'],'เพราะค่าที่ตัดทิ้งมากกว่าครึ่ง เช่น 0.2352 → 2 ตัว ได้ 0.24','mid',11],
+  ['2,376.55 ต้องการเลขนัยสำคัญ 2 ตัว ควรตอบข้อใด',['2.4 × 10³','24','2.3 × 10³','2,376'],'ห้ามตอบ 24 เพราะค่าเปลี่ยน ต้องเขียน 2.4 × 10³ หรือ 2,400 ซึ่งแบบยกกำลังสิบบอกจำนวนเลขนัยสำคัญได้ชัดกว่า','hard',16],
+  ['ตวงสาร 5 mL ด้วยกระบอกตวงที่อ่านได้ต่ำสุด 0.1 mL ต้องบันทึกอย่างไร',['5.00 mL','5.0 mL','5 mL','5.000 mL'],'เลข 0 ตัวแรกหลังจุดอ่านได้จากขีด และ 0 ตัวท้ายเป็นค่าประมาณ จึงบันทึก 5.00 mL','mid',11]
+];
+function bConcept(i){ const [st,opts,why,lv,pg]=CONCEPT[i]; const sh=shuf(opts);
+  const q=mkQ('concept',lv,st,'',[F('num',opts[0])],[why],{sub:'c'+i,pg}); q.mc={opts:sh,ans:sh.indexOf(opts[0])}; q.mcOnly=true; q.plain=true; return q; }
+
+/* ---------- ตัวสุ่มโจทย์ ---------- */
+const decStr=(sig,dp,ip=null)=>{ for(;;){ const intLen=ip!=null?ip:Math.max(1,sig-dp); let s=''; for(let i=0;i<sig;i++) s+=i===0?ri(1,9):ri(0,9);
+  if(dp>=sig){ return '0.'+'0'.repeat(dp-sig)+s; } const a=s.slice(0,sig-dp), b=s.slice(sig-dp); const r=a+(b?'.'+b:''); if(!/\.\d*0$/.test(r)||Math.random()<.3) return r; } };
+const GEN={
+  r2a(lv){ let n; if(lv==='easy'){ do{ n=pick([ri(1,39),ri(50,89),ri(100,399),ri(1000,3399)]); }while(/(IV|IX|XL|XC|CD|CM)/.test(romanSmall(n))); } else if(lv==='mid'){ do{ n=ri(40,3999); }while(!/(IV|IX|XL|XC|CD|CM)/.test(romanSmall(n))); } else n=ri(4000,49999); return bR2A(toRoman(n),lv); },
+  a2r(lv){ let n=lv==='easy'?ri(1,388):lv==='mid'?ri(40,3999):ri(4000,49999); if(lv==='easy') while(/(IV|IX|XL|XC|CD|CM)/.test(romanSmall(n))) n=ri(1,388); if(lv==='mid') while(!/(IV|IX|XL|XC|CD|CM)/.test(romanSmall(n))) n=ri(40,3999); return bA2R(n,lv); },
+  rcalc(lv){ let a,b,op;
+    if(lv==='easy'){ a=ri(10,400); b=ri(5,300); op=pick(['+','-']); if(op==='-'&&b>a)[a,b]=[b,a]; if(a===b) a+=7; return bRCalc(toRoman(a)+op+toRoman(b),lv); }
+    if(lv==='mid'){ op=pick(['×','÷','-']); if(op==='×'){a=ri(11,120);b=ri(2,12);} else if(op==='÷'){b=ri(2,12);a=b*ri(3,90);} else {a=ri(400,1999);b=ri(100,a-50);} return bRCalc(toRoman(a)+op+toRoman(b),lv); }
+    const k=pick(['big','three']); if(k==='big'){ a=ri(5000,9999); b=ri(4000,a-200); return bRCalc(toRoman(a)+'-'+toRoman(b),lv); }
+    a=ri(200,900); b=ri(20,a-50); const c=ri(100,900); return bRCalc(toRoman(a)+'-'+toRoman(b)+'+'+toRoman(c),lv); },
+  sfcount(lv){ let s;
+    if(lv==='easy') s=pick([decStr(ri(2,4),ri(1,3)),String(ri(11,9999)).replace(/0/g,()=>String(ri(1,9)))]);
+    else if(lv==='mid') s=pick([`0.${'0'.repeat(ri(1,4))}${ri(1,9)}${ri(0,9)}${Math.random()<.5?ri(1,9):''}`,`${ri(1,9)}0${ri(1,9)}${Math.random()<.5?'.'+ri(1,9):''}`,`${ri(1,99)}.${ri(1,9)}${'0'.repeat(ri(1,2))}`,`0.${ri(1,9)}${ri(1,9)}00`,`${ri(1,9)}00${ri(1,9)}.0${ri(1,9)}`]);
+    else s=pick([`${ri(1,9)}${ri(1,9)}${'0'.repeat(ri(1,4))}`,`${decStr(ri(2,4),ri(1,3),1)}x10^${pick([2,3,-3,-4,4])}`,`${ri(11,999)}x10^${pick([-4,-2,2,3])}`,`${ri(1,9)}.${ri(1,9)}0x10^${ri(2,5)}`]);
+    return bSFCount(s,lv); },
+  round(lv){ for(let t=0;t<40;t++){ let s,k;
+      if(lv==='easy'){ k=ri(2,3); s=decStr(k+ri(1,2),ri(1,3)); }
+      else if(lv==='mid'){ k=ri(2,3); const base=decStr(k,ri(1,k)); s=base+'5'; if(!base.includes('.')) s=base+'.5'; }
+      else { const v=pick(['more','zero','lead','sci']); k=ri(2,3);
+        if(v==='more'){ const b=decStr(k,ri(1,k)); s=(b.includes('.')?b:b+'.')+'5'+ri(1,9)+(Math.random()<.5?ri(0,9):''); }
+        else if(v==='zero'){ const b=decStr(k,ri(1,k)); s=(b.includes('.')?b:b+'.')+'5'+'0'.repeat(ri(1,2)); }
+        else if(v==='lead'){ s='0.'+'0'.repeat(ri(1,3))+String(ri(100,9999)); }
+        else { k=2; s=String(ri(1100,99999))+(Math.random()<.5?'.'+ri(1,9)+ri(0,9):''); } }
+      const R=roundInfo(s,'sig',k); if(R.rule==='pad') continue; if(lv==='easy'&&R.rule!=='gt'&&R.rule!=='lt') continue; if(lv==='mid'&&!/^5(odd|even)$/.test(R.rule)) continue;
+      return bRound(s,k,lv); } return bRound('2.769',3,lv); },
+  sfcalc(lv){ for(let t=0;t<60;t++){ let e;
+      if(lv==='easy'){ const a=decStr(ri(3,5),ri(1,3)), b=decStr(ri(2,4),ri(0,2)); e=Math.random()<.6?`${a} + ${b}`:(+a>+b?`${a} - ${b}`:`${b} - ${a}`); }
+      else if(lv==='mid'){ const a=decStr(ri(2,4),ri(1,3)), b=decStr(ri(2,5),ri(1,3)); e=Math.random()<.6?`${a} x ${b}`:`${a} ÷ ${b}`; }
+      else { if(Math.random()<.5){ const a=decStr(ri(3,4),ri(1,2)),b=decStr(ri(3,4),ri(1,3)),c=decStr(ri(2,3),ri(1,2)); e=`(${a} x ${b}) ÷ ${c}`; }
+        else { const a=String(ri(2,99)), b=decStr(ri(3,4),ri(1,2)), c=decStr(ri(4,6),ri(2,5)); e=`${a} + ${b} + ${c}`; } }
+      const q=bSFCalc(e,lv); if(/^5/.test(q.rule)||/^-/.test(q.fields[0].show)) continue; return q; } return bSFCalc('2.45 x 3.2',lv); },
+  record(lv){ const r=Math.random();
+    if(r<.55){ const step=lv==='easy'?10:lv==='mid'?1:0.1; let v;
+      if(step===10) v=ri(1,4)*10+ri(1,9); else if(step===1) v=ri(12,45)+ri(1,9)/10; else v=+(ri(2,7)+ri(1,9)/10+ri(1,9)/100).toFixed(2);
+      return bCylinder(step,v,lv); }
+    if(r<.8){ const a=lv==='easy'?0.01:pick([0.001,0.01,0.1]); const b=a===0.1?ri(2,9)*100:pick([ri(1,9)*10,ri(11,99)*10,ri(101,999)]); return bRecord('bal',a,b,lv); }
+    const a=pick([0.1,1]); return bRecord('vol',a,a===1?ri(5,45):ri(2,9),lv); },
+  concept(lv){ const ids=CONCEPT.map((c,i)=>i).filter(i=>lv==='mix'||CONCEPT[i][3]===lv); return bConcept(pick(ids.length?ids:CONCEPT.map((c,i)=>i))); }
+};
+
+/* ---------- ชุดแบบฝึกหัดในชีท (ข้อ 1 ถึง 4.4) ---------- */
+function setSheet(){ const S=o=>({src:'ชีทแบบฝึกหัด',...o}); return [
+  ...[18,450,1582,34444].map(n=>bA2R(n,null,S({no:'ข้อ 1'}))),
+  ...['V~MMCMXLIII','X~X~MMMCMXII','CMLXXIV','LXIV'].map(r=>bR2A(r,null,S({no:'ข้อ 2'}))),
+  ...['CCLI+CXXXII','DCCLXVIII-CDLII','CDXLIV-LXXVII+DC','V~MMMDCXLIX-V~DCCXXXVIII','XL×VI','LXXII÷IX'].map(e=>bRCalc(e,null,S({no:'ข้อ 3'}))),
+  ...['4.76','0.0065','7200','0.203','4.730','785x10^-4','25x10^2'].map(s=>bSFCount(s,null,S({no:'ข้อ 4'}))),
+  bCylinder(10,28,'mid',S({no:'แนวข้อ 5'})),
+  ...[['2.769',3],['2.432',2],['725.08',3],['0.00234',3],['19.76',3],['54.674876',4],['0.8765',2]].map(([s,k])=>bRound(s,k,null,S({no:'ข้อ 4.3'}))),
+  ...['2.823 + 586.3','(55.2 x 12.333) ÷ 6.1','80.25 - 75.1','6 + 3.17 + 4.356194','2.45 x 3.2','(26.5 ÷ 4.0) x 1.1','703 + 8 + 0.87','14.28 ÷ 0.714','28.326 + 8.97 + 3.0','562.9 - 328.26','72.4 x 0.084'].map(e=>bSFCalc(e,null,S({no:'ข้อ 4.4'})))
+];}
+/* ---------- ชุดตัวอย่างในสไลด์ ---------- */
+function setSlide(){ const S=(pg)=>({src:'ตัวอย่างในสไลด์',pg}); return [
+  ...['II','VII','LX','CXII','CXXXVI','MCCCLXVII'].map(r=>bR2A(r,null,S(4))),
+  ...[95,420,7240,2530000].map(n=>bA2R(n,null,S(6))),
+  ...['MMLV','V~II','LXV','MIX'].map(r=>bR2A(r,null,S(6))),
+  ...['LXVII+CLXVI','XXXIII-XII','MC×VIII','CM÷IX'].map(e=>bRCalc(e,null,S(7))),
+  ...['1.212','2002','200.01','12.50','0.1200','0.0001200','0.00004','66','5.66','560000','2566.6','6.6x10^2','2566x10^-4','231','0.0025','3679','0.000005','6500'].map(s=>bSFCount(s,null,S(8))),
+  bRecord('vol',0.1,5,null,S(11)), bRecord('bal',0.001,60,null,S(10)), bRecord('bal',0.01,60,null,S(10)), bRecord('vol',1,19,null,S(11)), bCylinder(10,34,null,S(10)), bCylinder(1,34.5,null,S(10)),
+  ...[['2.46',2],['2.43',2],['2.85',2],['3.975',3],['0.2352',2],['0.8250',2],['2.78',2],['2.51',2],['7.265',3],['6.305',3],['6.45',2],['6.7835',4],['3.335',3],['2.75',2],['8.5654',3],['5.253',2],['4.8754',3],['6.56650',4],['4.250',2]].map(([s,k])=>bRound(s,k,null,S(12))),
+  ...['12.45 + 134.324 + 60.4786','51.43 + 2.0','123.01 + 1.2 - 50.00000','23.2 x 35.45','12.3 ÷ 22.4','432.10 x 5.5','3.45 x 160.6531','0.6214 ÷ 4.52','5.432 ÷ 0.7'].map(e=>bSFCalc(e,null,S(15)))
+];}
+
+/* ===================== ข้อสอบบทที่ 1: หน้าเลือกโหมด + ผู้เล่น ===================== */
+ST.qz=Object.assign({ans:0,ok:0,best:0,tp:{},wrong:[],last:null,style:'mix',diff:'mix',n:10,tps:['r2a','a2r','rcalc','sfcount','record','round','sfcalc','concept']},ST.qz||{});
+const QSTYLE=[['type','พิมพ์ตอบ','แบบข้อเขียน'],['mc','ช้อยส์','เลือก 4 ตัวเลือก'],['mix','ผสม','สลับกันไป']];
+const QLV=[['mix','ผสม','ทุกระดับ'],['easy','ง่าย','ถามตรง'],['mid','ปานกลาง','หลักการลด กฎเลข 5'],['hard','ยาก','ขีดบน ยกกำลังสิบ หลายขั้น']];
+const tpAcc=t=>{const s=ST.qz.tp[t];return s&&s.all?Math.round(s.ok/s.all*100):null;};
+const fig=q=>q.fig&&q.fig.k==='cyl'?cylSVG(q.fig.step,q.fig.v):'';
+
+/* ---------- ภาพกระบอกตวง ---------- */
+function cylSVG(step,v){
+  const span=step>=10?50:step===1?10:1, lo=step>=10?0:Math.floor(v/(step*5))*step*5-(step*5), hi=lo+span+(step>=10?0:step*5);
+  const top=24,bot=286,x0=70,x1=170, Y=val=>bot-(val-lo)/(hi-lo)*(bot-top);
+  let ticks=''; const n=Math.round((hi-lo)/step);
+  for(let i=0;i<=n;i++){ const val=+(lo+i*step).toFixed(3), y=Y(val), major=step>=10||i%5===0;
+    ticks+=`<line x1="${x1-(major?34:18)}" x2="${x1}" y1="${y}" y2="${y}" stroke="currentColor" stroke-width="${major?2.2:1.4}"/>`;
+    if(major) ticks+=`<text x="${x1-40}" y="${y+5}" text-anchor="end" font-size="15" fill="currentColor" font-weight="600">${+val.toFixed(2)}</text>`; }
+  const y=Y(v);
+  return `<svg class="cyl" viewBox="0 0 240 310" role="img" aria-label="ภาพกระบอกตวง">
+   <rect x="${x0}" y="${top-14}" width="${x1-x0}" height="${bot-top+30}" rx="6" fill="var(--surface)" stroke="currentColor" stroke-width="2.4"/>
+   <path d="M${x0+2} ${y+0.5} Q${(x0+x1)/2} ${y+12} ${x1-2} ${y+0.5} L${x1-2} ${bot+14} L${x0+2} ${bot+14}Z" fill="#7CC7F2" opacity=".55"/>
+   <path d="M${x0+2} ${y+0.5} Q${(x0+x1)/2} ${y+12} ${x1-2} ${y+0.5}" fill="none" stroke="#1E78B4" stroke-width="2"/>
+   ${ticks}
+   <line x1="${x0-26}" x2="${x1+26}" y1="${y+6.5}" y2="${y+6.5}" stroke="var(--brand)" stroke-width="1.6" stroke-dasharray="5 4"/>
+   <text x="${x1+30}" y="${y+11}" font-size="12" fill="var(--brand)">ท้องโค้ง</text>
+   <text x="${x1+8}" y="${top+2}" font-size="14" font-weight="700" fill="currentColor">mL</text></svg>`;
+}
+
+/* ---------- หน้าเลือกโหมด ---------- */
+function quizHTML(){
+  const Z=ST.qz, acc=Z.ans?Math.round(Z.ok/Z.ans*100):null, nS=setSheet().length, nL=setSlide().length;
+  const seg=(arr,cur,attr)=>`<div class="lvseg ${arr.length===3?'q3':''}" role="radiogroup">${arr.map(([id,n,d])=>`<button class="ls rp ${cur===id?'on':''}" role="radio" aria-checked="${cur===id}" ${attr}="${id}" data-soft="1"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`;
+  return pageHead('ข้อสอบบทที่ 1','เลขโรมัน และเลขนัยสำคัญ · พิมพ์ตอบและช้อยส์ · ทุกข้อมีเฉลยพร้อมหลักการคิด')+`
+   <section class="qhero"><div class="qhero-msc">${beetleCar({mood:'happy'})}</div>
+    <div class="qhero-b"><div class="qstat"><div><b class="num">${Z.ans}</b><small>ทำแล้ว</small></div><div><b class="num">${acc==null?'–':acc+'%'}</b><small>แม่นยำ</small></div><div><b class="num">${Z.best}</b><small>ถูกติดกัน</small></div></div>
+     <button class="prime-cta rp" data-tab="prime"><span class="pc-ic">${I.bulb}</span><span><b>ปูพื้นฐานก่อนสอบ</b><small>สรุปกฎทุกเรื่องพร้อมตัวอย่าง อ่าน 5 นาทีก่อนลุย</small></span>${I.chev}</button></div></section>
+   <div class="sec"><div><h2>รูปแบบการตอบ</h2><p>พิมพ์ตอบ: ตัวพิมพ์เล็กใหญ่ เว้นวรรคหรือไม่ก็ได้ ขอแค่ตัวอักษรครบและเรียงถูก</p></div></div>
+   ${seg(QSTYLE,Z.style,'data-qstyle')}
+   <div class="sec"><div><h2>ชุดข้อสอบ</h2></div></div>
+   <div class="qmodes">
+    <button class="qmode rp" data-qset="sheet"><span class="qm-ic">${I.quiz}</span><span><b>แบบฝึกหัดในชีท</b><small class="num">${nS} ข้อ ตามลำดับในชีท ข้อ 1 ถึง 4.4</small></span>${I.play}</button>
+    <button class="qmode rp" data-qset="slide"><span class="qm-ic">${I.book}</span><span><b>ตัวอย่างในสไลด์</b><small class="num">${nL} ข้อ จากตัวอย่างและเฉลยสีแดง</small></span>${I.play}</button>
+    ${Z.wrong.length?`<button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button>`:''}
+   </div>
+   <div class="sec"><div><h2>สุ่มโจทย์แนวเดียวกัน</h2><p>ตัวเลขใหม่ทุกครั้ง ไม่รู้จบ</p></div></div>
+   <div class="panel qgen">
+    <h3 class="mini">ระดับ</h3>${seg(QLV,Z.diff,'data-qdiff')}
+    <h3 class="mini">เรื่อง <button class="link sm rp" data-qall="1">${Z.tps.length===Object.keys(QT).length?'เอาออกทั้งหมด':'เลือกทั้งหมด'}</button></h3>
+    <div class="fchips">${Object.entries(QT).map(([k,t])=>`<button class="fchip rp ${Z.tps.includes(k)?'on':''}" data-qtp="${k}" data-soft="1" aria-pressed="${Z.tps.includes(k)}">${Z.tps.includes(k)?I.check:''}${t.n}${k==='concept'?' <i class="mc-tag">ช้อยส์</i>':''}</button>`).join('')}</div>
+    <h3 class="mini">จำนวนข้อ</h3>
+    <div class="fchips">${[10,20,30].map(n=>`<button class="fchip rp ${Z.n===n?'on':''}" data-qn="${n}" data-soft="1"><b class="num">${n}</b> ข้อ</button>`).join('')}</div>
+    <button class="btn lg rp wide" data-qset="gen" ${Z.tps.length?'':'disabled'}>${I.dice}เริ่มสุ่มโจทย์</button>
+   </div>
+   <div class="sec"><div><h2>แยกตามเรื่อง</h2><p>แตะเพื่อฝึกเฉพาะเรื่องนั้น 10 ข้อ</p></div></div>
+   <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div>
+   <div class="sec"><div><h2>บทอื่น</h2></div></div>
+   <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
+}
+function quizBind(){
+  const Z=ST.qz, rr=()=>{const y=scrollY;render();scrollTo(0,y);};
+  $$('[data-qstyle]').forEach(b=>b.onclick=()=>{Z.style=b.dataset.qstyle;save();rr();});
+  $$('[data-qdiff]').forEach(b=>b.onclick=()=>{Z.diff=b.dataset.qdiff;save();rr();});
+  $$('[data-qtp]').forEach(b=>b.onclick=()=>{const k=b.dataset.qtp;Z.tps=Z.tps.includes(k)?Z.tps.filter(x=>x!==k):[...Z.tps,k];save();rr();});
+  $$('[data-qall]').forEach(b=>b.onclick=()=>{Z.tps=Z.tps.length===Object.keys(QT).length?[]:Object.keys(QT);save();rr();});
+  $$('[data-qn]').forEach(b=>b.onclick=()=>{Z.n=+b.dataset.qn;save();rr();});
+  $$('[data-qset]').forEach(b=>b.onclick=()=>startQuiz(b.dataset.qset));
+  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone],n:10}));
+}
+function genList(tps,n,diff){ const out=[],seen=new Set(); let guard=0;
+  while(out.length<n&&guard++<n*30){ const t=tps[out.length%tps.length]; const lv=diff==='mix'?pick(['easy','mid','hard']):diff; const q=GEN[t](t==='concept'&&diff==='mix'?'mix':lv); if(seen.has(q.id)) continue; seen.add(q.id); out.push(q); }
+  return shuf(out); }
+function startQuiz(kind,o={}){
+  const Z=ST.qz; let list,title;
+  if(kind==='sheet'){ list=setSheet(); title='แบบฝึกหัดในชีท'; }
+  else if(kind==='slide'){ list=setSlide(); title='ตัวอย่างในสไลด์'; }
+  else if(kind==='wrong'){ list=shuf(Z.wrong.map(x=>Object.assign({},x))); title='ข้อที่เคยผิด'; }
+  else { const tps=o.tps||Z.tps; if(!tps.length) return toast('เลือกอย่างน้อย 1 เรื่อง'); list=genList(tps,o.n||Z.n,Z.diff); title=tps.length===1?QT[tps[0]].n:'สุ่มโจทย์ '+(Z.diff==='mix'?'ทุกระดับ':LVN[Z.diff]); }
+  /* กำหนดรูปแบบการตอบของแต่ละข้อ */
+  list.forEach((q,i)=>{ q.as=q.mcOnly?'mc':!q.mc?'type':Z.style==='mix'?(i%2?'mc':'type'):Z.style; });
+  QP={kind,title,list,i:0,ok:0,streak:0,res:[],done:false};
+  openQuiz();
+}
+let QP=null;
+
+/* ---------- ผู้เล่น ---------- */
+function openQuiz(){ document.body.style.overflow='hidden'; const L=$('#layer'); L.innerHTML=`<div class="player qp" id="qp" role="dialog" aria-modal="true" aria-label="ทำข้อสอบ"></div>`; qRender(); }
+function qClose(){ QP=null; $('#layer').innerHTML=''; document.body.style.overflow=''; if(UI.tab==='quiz'){const y=scrollY;render();scrollTo(0,y);} }
+function kp(kind){
+  if(kind==='roman'||kind==='rnum') return `<div class="kp" role="group" aria-label="แป้นเลขโรมัน">${'IVXLCDM'.split('').map(c=>`<button class="kk rp" data-k="${c}" data-soft="1">${c}</button>`).join('')}<button class="kk ov-k rp" data-k="̅" data-soft="1" aria-label="ขีดบนตัวก่อนหน้า">¯</button><button class="kk rp" data-k="BS" data-soft="1" aria-label="ลบ">⌫</button></div>`;
+  return `<div class="kp num" role="group" aria-label="ปุ่มช่วยพิมพ์">${kind==='range'?`<button class="kk rp" data-k="-" data-soft="1">ถึง (-)</button>`:`<button class="kk rp" data-k="x10^" data-soft="1">×10^</button><button class="kk rp" data-k="-" data-soft="1">−</button>`}<button class="kk rp" data-k="BS" data-soft="1" aria-label="ลบ">⌫</button></div>`;
+}
+function qRender(){
+  const P=QP, q=P.list[P.i], el=$('#qp'); if(!el) return;
+  const pct=Math.round(P.i/P.list.length*100);
+  const multi=q.fields.length>1;
+  const ans=q.as==='mc'?`<div class="qopts" role="radiogroup" aria-label="ตัวเลือก">${q.mc.opts.map((o,i)=>`<button class="qopt rp" data-op="${i}" role="radio" aria-checked="false"><span class="qk num">${'กขคง'[i]}</span><span class="qo-t">${q.plain?esc(o):showAns(o)}</span></button>`).join('')}</div>`
+    :`<div class="qfields ${multi?'multi':''}">${q.fields.map((f,i)=>`<label class="qf"><span class="qf-l">${f.lab?esc(f.lab):'คำตอบ'}</span><span class="qf-in"><input id="qi${i}" class="qin ${f.kind==='roman'||f.kind==='rnum'?'rom':''}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="${f.kind==='roman'||f.kind==='rnum'?'text':'decimal'}" enterkeyhint="${i<q.fields.length-1?'next':'done'}" aria-label="${esc(f.lab||'คำตอบ')}">${f.unit?`<i>${f.unit}</i>`:''}</span></label>`).join('')}</div>
+     ${kp(q.fields[0].kind)}${q.hint?`<p class="qhint">${I.bulb}${esc(q.hint)}</p>`:''}`;
+  el.innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ออก">${I.x}</button><div class="pline"><i style="width:${pct}%"></i></div><b class="num">${P.i+1}/${P.list.length}</b><span class="pst num">${I.check}${P.ok}</span></div></div>
+   <div class="pl-sc" id="qsc"><div class="stage"><article class="qcard">
+    <div class="qmeta"><span class="qtopic">${QT[q.t].n}</span><span class="lv lv-${q.lv}">${LVN[q.lv]}</span>${q.src?`<span class="qsrc">${esc(q.src)}${q.no?' · '+esc(q.no):''}</span>`:''}<span class="qtype">${q.as==='mc'?'ช้อยส์':'พิมพ์ตอบ'}</span></div>
+    <p class="stem">${esc(q.stem)}</p>${!q.fig&&(q.bigHTML||q.big)?`<div class="qbig">${q.bigHTML||esc(q.big)}</div>`:''}${fig(q)?`<div class="qfig">${fig(q)}</div>`:''}
+    ${ans}
+    <div id="qfb"></div></article></div></div>
+   <div class="pact"><div class="pact-in"><button class="btn lg rp wide" id="qgo" ${q.as==='mc'?'disabled':''}>${I.check}ตรวจคำตอบ</button></div></div>`;
+  $('#qx').onclick=()=>{ if(P.res.length&&!P.done) qFinish(); else qClose(); };
+  let sel=-1;
+  $$('#qp [data-op]').forEach(b=>b.onclick=()=>{ if(P.checked) return; sel=+b.dataset.op; $$('#qp [data-op]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);}); $('#qgo').disabled=false; });
+  const ins=$$('#qp .qin'); let focusI=0; ins.forEach((x,i)=>{ x.onfocus=()=>focusI=i; x.oninput=()=>{}; x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); if(i<ins.length-1&&!x.value.trim()) return; if(i<ins.length-1) ins[i+1].focus(); else qCheck(); } }; });
+  $$('#qp [data-k]').forEach(b=>{ b.onpointerdown=e=>e.preventDefault(); b.onclick=()=>{ const x=ins[focusI]; if(!x||x.disabled) return; const k=b.dataset.k, s=x.selectionStart??x.value.length, e2=x.selectionEnd??x.value.length;
+    if(k==='BS'){ if(s===e2&&s>0){ const cut=x.value[s-1]==='̅'&&s>1?2:1; x.value=x.value.slice(0,s-cut)+x.value.slice(s); x.setSelectionRange(s-cut,s-cut);} else { x.value=x.value.slice(0,s)+x.value.slice(e2); x.setSelectionRange(s,s);} }
+    else { x.value=x.value.slice(0,s)+k+x.value.slice(e2); const p=s+k.length; x.setSelectionRange(p,p); }
+    x.focus({preventScroll:true}); }; });
+  $('#qgo').onclick=()=>P.checked?qNext():qCheck(sel);
+  P.checked=false;
+  if(ins[0]&&!matchMedia('(pointer:coarse)').matches) ins[0].focus();
+  QP._sel=()=>sel;
+}
+function chkField(f,u){ const c=[normNum(u),normRoman(u),normRange(u)]; return f.acc.some(a=>c.includes(a)); }
+function qCheck(){
+  const P=QP, q=P.list[P.i]; if(P.checked) return;
+  let ok, yours;
+  if(q.as==='mc'){ const s=P._sel(); if(s<0) return; ok=s===q.mc.ans; yours=q.mc.opts[s];
+    $$('#qp [data-op]').forEach((b,i)=>{ b.disabled=true; b.classList.add(i===q.mc.ans?'right':i===s?'wrong':'dim'); }); }
+  else { const ins=$$('#qp .qin'); const vals=ins.map(x=>x.value); if(vals.every(v=>!v.trim())){ toast('พิมพ์คำตอบก่อนนะ'); ins[0].focus(); return; }
+    const each=q.fields.map((f,i)=>chkField(f,vals[i])); ok=each.every(Boolean); yours=vals.join(' · ');
+    ins.forEach((x,i)=>{ x.disabled=true; x.parentElement.classList.add(each[i]?'right':'wrong'); }); }
+  P.checked=true;
+  const Z=ST.qz, k=q.t; Z.tp[k]=Z.tp[k]||{ok:0,all:0}; Z.tp[k].all++; Z.ans++;
+  if(ok){ Z.tp[k].ok++; Z.ok++; P.ok++; P.streak++; Z.best=Math.max(Z.best,P.streak); Z.wrong=Z.wrong.filter(w=>w.id!==q.id); SFX.ok(); }
+  else { P.streak=0; if(!Z.wrong.some(w=>w.id===q.id)){ const c=Object.assign({},q); delete c.as; delete c._sel; Z.wrong.unshift(c); Z.wrong=Z.wrong.slice(0,80);} SFX.bad(); }
+  save(); P.res.push({q,ok,yours});
+  const fb=$('#qfb');
+  fb.innerHTML=`<section class="qexp ${ok?'ok':'no'}" aria-live="polite">
+    <header class="qexp-h"><span class="qexp-ic">${ok?I.check:I.x}</span><b>${ok?pick(['ถูกต้อง เก่งมาก','ถูกเป๊ะ','เยี่ยมเลย']):'ยังไม่ถูก ดูเฉลยก่อนนะ'}</b></header>
+    ${!ok?`<p class="qyour">คำตอบของคุณ: <span>${q.as==='mc'?(q.plain?esc(yours):showAns(yours)):esc(yours)||'–'}</span></p>`:''}
+    <p class="qans">เฉลย: ${q.fields.length>1?q.fields.map(f=>`<span class="qa-f"><small>${esc(f.lab)}</small><b>${showAns(f.show)}${f.unit?' '+f.unit:''}</b></span>`).join(''):`<b>${q.plain?esc(q.fields[0].show):showAns(q.fields[0].show)}${q.fields[0].unit?' '+q.fields[0].unit:''}</b>`}</p>
+    <div class="qwhy"><h4>${I.bulb}หลักการคิด</h4><ol>${q.exp.map(s=>`<li>${s}</li>`).join('')}</ol></div>
+    <button class="link sm rp" data-qpg="${q.pg||QT[q.t].pg}">${I.book}อ่านเรื่องนี้ในหนังสือ หน้า ${q.pg||QT[q.t].pg}</button>
+   </section>`;
+  $('#qp [data-qpg]').onclick=e=>bookZoom(+e.currentTarget.dataset.qpg);
+  const g=$('#qgo'); g.disabled=false; g.innerHTML=P.i<P.list.length-1?`ข้อถัดไป ${I.arrow}`:`${I.check}ดูสรุปผล`; g.focus({preventScroll:true});
+  const pst=$('#qp .pst'); if(pst) pst.innerHTML=I.check+P.ok;
+  setTimeout(()=>fb.scrollIntoView({behavior:LITE?'auto':'smooth',block:'start'}),60);
+}
+function qNext(){ const P=QP; if(P.i<P.list.length-1){ P.i++; qRender(); const s=$('#qsc'); if(s) s.scrollTop=0; } else qFinish(); }
+function qFinish(){
+  const P=QP; P.done=true; const n=P.res.length, ok=P.res.filter(r=>r.ok).length, p=n?Math.round(ok/n*100):0;
+  ST.qz.last={title:P.title,ok,n,t:Date.now()}; save();
+  const by={}; P.res.forEach(r=>{const k=r.q.t; by[k]=by[k]||[0,0]; by[k][1]++; if(r.ok) by[k][0]++;});
+  $('#qp').innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ปิด">${I.x}</button><b>สรุปผล · ${esc(P.title)}</b></div></div>
+   <div class="pl-sc"><div class="stage"><section class="qsum">
+    <div class="qsum-msc">${beetleCar({mood:p>=80?'happy':p>=50?'wink':'sad'})}</div>
+    <div class="ring-w">${ring(p,140,12)}<span class="ring-v"><b class="num">${p}%</b><small>ถูก ${ok}/${n}</small></span></div>
+    <h2>${p>=80?'เครื่องแรงมาก พร้อมสอบแล้ว':p>=50?'มาถูกทางแล้ว ทบทวนอีกนิด':'ค่อยๆ ซ้อมไปด้วยกันนะ'}</h2>
+    <div class="qsum-tp">${Object.entries(by).map(([k,[o,a]])=>`<div class="lvbar"><span>${QT[k].n}</span><span class="num">${o}/${a}</span>${meter(Math.round(o/a*100))}</div>`).join('')}</div>
+    <div class="cta-row two">${P.res.some(r=>!r.ok)?`<button class="btn ghost lg rp" id="qs-wrong">${I.alert}ทำข้อที่ผิดอีกครั้ง</button>`:''}<button class="btn lg rp" id="qs-again">${I.reset}ทำชุดนี้อีกรอบ</button></div>
+    ${P.res.some(r=>!r.ok)?`<h3 class="mini">ข้อที่ผิดพร้อมเฉลย</h3><div class="qrv">${P.res.filter(r=>!r.ok).map(r=>`<details class="rv"><summary><span class="rv-q">${esc(r.q.stem)} <b>${r.q.bigHTML||esc(r.q.big)}</b></span>${I.down}</summary><div class="rv-b"><p>เฉลย: <b>${r.q.fields.map(f=>showAns(f.show)+(f.unit?' '+f.unit:'')).join(' · ')}</b></p><ol>${r.q.exp.map(s=>`<li>${s}</li>`).join('')}</ol></div></details>`).join('')}</div>`:''}
+   </section></div></div>`;
+  SFX.done();
+  $('#qx').onclick=qClose;
+  if($('#qs-wrong')) $('#qs-wrong').onclick=()=>{ const l=P.res.filter(r=>!r.ok).map(r=>Object.assign({},r.q)); QP={kind:'retry',title:'แก้ข้อที่ผิด',list:l,i:0,ok:0,streak:0,res:[],done:false}; openQuiz(); };
+  $('#qs-again').onclick=()=>{ if(P.kind==='retry'||P.kind==='wrong'){ const l=P.list.map(q=>Object.assign({},q)); QP={...P,list:shuf(l),i:0,ok:0,streak:0,res:[],done:false}; openQuiz(); } else startQuiz(P.kind==='gen'?'gen':P.kind); };
+}
+addEventListener('keydown',e=>{ if(!QP||!$('#qp')) return; if(e.key==='Escape'){ e.preventDefault(); $('#qx')&&$('#qx').click(); }
+  else if(e.key==='Enter'&&QP.checked&&!QP.done&&document.activeElement&&document.activeElement.id!=='qgo'){ e.preventDefault(); qNext(); }
+  else if(!QP.checked&&/^[1-4]$/.test(e.key)&&QP.list[QP.i].as==='mc'){ const b=$$('#qp [data-op]')[+e.key-1]; if(b) b.click(); } });
+
+/* ===================== ปูพื้นฐานก่อนสอบ ===================== */
+const PRIME=[
+ {id:'r1',t:'เลขโรมันพื้นฐาน',tp:'r2a',pg:3,b:`<p>ระบบเลขโรมัน <b>ไม่มีเลข 0</b> มีสัญลักษณ์พื้นฐาน 8 ตัว เขียนตัวพิมพ์เล็กหรือใหญ่ก็ได้</p>
+   <div class="pm-tb">${[['ss','½'],['I','1'],['V','5'],['X','10'],['L','50'],['C','100'],['D','500'],['M','1,000']].map(([a,b])=>`<span><b>${a}</b><small>${b}</small></span>`).join('')}</div>
+   <p class="pm-tip">${I.bulb}ท่อง I V X L C D M ค่าจะสลับ ×5 กับ ×2 ไปเรื่อยๆ</p>
+   <h4>หลักการเพิ่ม (3 ข้อ ใช้พร้อมกัน)</h4><ol><li>เรียงจากค่ามากไปน้อย</li><li>นำค่าแต่ละตัวมาบวกกัน</li><li>ตัวเดียวกันซ้ำได้ไม่เกิน 3 ตัว</li></ol>
+   <p class="pm-ex">CXII = 100 + 10 + 1 + 1 = 112 · MCCCLXVII = 1,000 + 300 + 50 + 10 + 5 + 2 = 1,367</p>`},
+ {id:'r2',t:'หลักการลด',tp:'a2r',pg:4,b:`<p>เขียน<b>ตัวน้อยไว้หน้าตัวมาก</b>แล้วลบกัน มีกติกา 2 ข้อ</p><ol><li>ตัวลบมีแค่ <b>I, X, C</b></li><li>ลบได้จากเลขที่ค่าถัดไป 2 ค่าเท่านั้น</li></ol>
+   <div class="pm-tb w">${[['I','V, X','IV 4 · IX 9'],['X','L, C','XL 40 · XC 90'],['C','D, M','CD 400 · CM 900']].map(([a,b,c])=>`<span><b>${a}</b><small>ลบจาก ${b}</small><small>${c}</small></span>`).join('')}</div>
+   <p class="pm-warn">${I.alert}ห้ามเขียน IC แทน 99 ต้องเป็น XC + IX = <b>XCIX</b></p>`},
+ {id:'r3',t:'จำนวนมาก (ขีดบน)',tp:'a2r',pg:5,b:`<p>ไม่นิยมซ้ำ 4 ตัว (XXXX เขียน XL) ส่วนจำนวนเกิน 3,999 ให้<b>ขีดบนตัวอักษร = คูณ 1,000</b></p>
+   <div class="pm-tb">${['V','X','L','C','D','M'].map((a,i)=>`<span><b>${romanHTML(a+'~')}</b><small>${['5,000','10,000','50,000','100,000','500,000','1,000,000'][i]}</small></span>`).join('')}</div>
+   <p class="pm-ex">แยกก้อนหลักพันกับส่วนที่เหลือ: 7,240 = 7×1,000 + 240 → ${romanHTML('V~')}MM + CCXL = <b>${romanHTML('V~MMCCXL')}</b> (${romanHTML('I~')} = M)<br>2,530,000 = 2,530 × 1,000 → MMDXXX ขีดบนทั้งหมด = <b>${romanHTML('M~M~D~X~X~X~')}</b></p>
+   <p class="pm-tip">${I.bulb}วิธีพิมพ์ขีดบนในแอพ: กดปุ่ม <b>¯</b> หลังตัวอักษร หรือพิมพ์ _ นำหน้า เช่น _VMMCCXL</p>`},
+ {id:'r4',t:'คำนวณเลขโรมัน',tp:'rcalc',pg:7,b:`<p>แปลงเป็นเลขอารบิกก่อน แล้วค่อยคำนวณ (ตอบเป็นอารบิกหรือโรมันก็ได้)</p>
+   <p class="pm-ex">LXVII + CLXVI = 67 + 166 = <b>233</b> · MC × VIII = 1,100 × 8 = <b>8,800</b> · CM ÷ IX = 900 ÷ 9 = <b>100</b></p>`},
+ {id:'s1',t:'นับเลขนัยสำคัญ',tp:'sfcount',pg:8,b:`<ol class="pm-rules"><li><b>เลข 1 ถึง 9</b> นับเสมอ <small>1.212 → 4 ตัว</small></li><li><b>0 ระหว่างเลข</b> นับ <small>2002 → 4 · 200.01 → 5</small></li><li><b>0 ท้าย หลังจุดทศนิยม</b> นับ <small>12.50 → 4 · 0.1200 → 4</small></li><li><b>0 นำหน้าเลขตัวแรก</b> ไม่นับ <small>0.0023 → 2 · 0.00004 → 1</small></li><li><b>0 ท้ายจำนวนเต็ม</b> ไม่ชัด ตอบเป็นช่วง <small>2500 → 2-4 ตัว</small></li></ol>
+   <p class="pm-tip">${I.bulb}นับเร็ว: เริ่มที่เลขไม่ใช่ 0 ตัวแรกทางซ้าย นับไปจนสุดทางขวา ถ้าเป็น a × 10ⁿ นับเฉพาะ a เช่น 2566 × 10⁻⁴ → 4 ตัว</p>`},
+ {id:'s2',t:'บันทึกค่าจากการวัด',tp:'record',pg:10,b:`<div class="pm-fig">${cylSVG(10,34)}<div><p>อ่านถึง<b>ขีดที่ละเอียดที่สุด</b> แล้ว<b>ประมาณเพิ่มอีก 1 หลัก</b> ตัวสุดท้ายคือตัวที่ไม่แน่นอน</p>
+   <p class="pm-ex">ขีดละ 10 mL ระดับเลยขีด 30 ไปประมาณ 4 → รายงาน <b>34 mL</b> (2 ตัว)<br>ขีดละ 1 mL ระดับอยู่ระหว่าง 34 กับ 35 → <b>34.5 mL</b> (3 ตัว)</p></div></div>
+   <p class="pm-ex">ตวง 5 mL ด้วยขีดต่ำสุด 0.1 mL → <b>5.00 mL</b> · เครื่องชั่ง 0.001 g ชั่ง 60 mg → <b>0.0600 g</b> (ไม่ใช่ 0.06000)</p>`},
+ {id:'s3',t:'การปัดเลขตัวสุดท้าย',tp:'round',pg:11,b:`<p>ดู<b>ตัวเลขที่พิจารณา</b> = ตัวแรกที่จะถูกตัดทิ้ง</p>
+   <div class="pm-rt">${[['มากกว่า 5','ปัดขึ้น','2.46 → 2.5'],['น้อยกว่า 5','ปัดลง','2.43 → 2.4'],['5 พอดี เลขหน้าคู่หรือ 0','ตัดทิ้ง','2.85 → 2.8'],['5 พอดี เลขหน้าคี่','ปัดขึ้น','3.975 → 3.98'],['5 แล้วมีเลขไม่ใช่ 0 ตาม','ปัดขึ้นเสมอ','0.2352 → 0.24'],['5 แล้วตามด้วย 0','เหมือนไม่มีเลขตาม','0.8250 → 0.82']].map(([a,b,c])=>`<div><span>${a}</span><b>${b}</b><small class="num">${c}</small></div>`).join('')}</div>
+   <p class="pm-tip">${I.bulb}กรณี 5 พอดี ให้ผลลงท้ายด้วยเลขคู่เสมอ</p>`},
+ {id:'s4',t:'คำนวณตามหลักเลขนัยสำคัญ',tp:'sfcalc',pg:14,b:`<div class="pm-two"><div><h4>บวก ลบ</h4><p>ผลลัพธ์มี<b>ตำแหน่งทศนิยม</b>เท่ากับตัวที่น้อยที่สุด</p><p class="pm-ex">51.43 + 2.0 = 53.43 → <b>53.4</b></p></div>
+   <div><h4>คูณ หาร</h4><p>ผลลัพธ์มี<b>จำนวนเลขนัยสำคัญ</b>เท่ากับตัวที่น้อยที่สุด</p><p class="pm-ex">23.2 × 35.45 = 822.44 → <b>822</b></p></div></div>
+   <p class="pm-warn">${I.alert}432.10 × 5.5 = 2,376.55 ต้องการ 2 ตัว ห้ามตอบ 24 ให้ตอบ <b>2.4 × 10³</b> (หรือ 2,400) · ปัดตอนท้ายครั้งเดียว</p>`},
+ {id:'h1',t:'วิธีพิมพ์คำตอบในแอพ',tp:null,pg:null,b:`<ul class="pm-how"><li>ตัวพิมพ์เล็กหรือใหญ่ เว้นวรรคหรือพิมพ์ชิด ได้หมด ขอแค่ตัวอักษรครบและเรียงถูก</li><li>เลขโรมันขีดบน: ปุ่ม <b>¯</b> หลังตัวอักษร หรือ _ นำหน้า</li><li>ยกกำลังสิบ: <b>2.4x10^3</b> หรือ 2.4e3 หรือกดปุ่ม ×10^</li><li>ตอบเป็นช่วง: <b>2-4</b> หรือ 2 ถึง 4</li><li>ใส่หรือไม่ใส่หน่วยก็ได้ แต่เลข 0 ท้ายทศนิยมต้องครบ (5.00 ไม่เท่ากับ 5)</li></ul>`}
+];
+function primeHTML(){
+  return head()+`<div class="wrap"><button class="crumb rp" data-tab="quiz">${I.back} ข้อสอบ</button>
+   <div class="ptitle"><div><h1>ปูพื้นฐานก่อนสอบ</h1><p>สรุปกฎทุกเรื่องของบทที่ 1 อ่านจบแล้วกดฝึกเรื่องนั้นได้ทันที</p></div></div>
+   <nav class="pm-nav">${PRIME.map((s,i)=>`<a href="#pm-${s.id}" class="fchip rp" data-soft="1" data-pmj="${s.id}"><b class="num">${i+1}</b>${s.t}</a>`).join('')}</nav>
+   ${PRIME.map((s,i)=>`<section class="pm panel" id="pm-${s.id}"><header><span class="pm-no num">${i+1}</span><h2>${s.t}</h2></header><div class="pm-b">${s.b}</div>
+    ${s.tp?`<footer><button class="btn sm rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้ 10 ข้อ</button><button class="btn ghost sm rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button></footer>`:''}</section>`).join('')}
+   <div class="cta-row"><button class="btn lg rp wide" data-qset="sheet">${I.play}พร้อมแล้ว ทำแบบฝึกหัดในชีท</button></div></div>`;
+}
+function primeBind(){
+  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone],n:10}));
+  $$('[data-qset]').forEach(b=>b.onclick=()=>startQuiz(b.dataset.qset));
+  $$('[data-qpgz]').forEach(b=>b.onclick=()=>bookZoom(+b.dataset.qpgz));
+  $$('[data-pmj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const t=$('#pm-'+a.dataset.pmj); if(t) scrollTo({top:t.getBoundingClientRect().top+scrollY-70,behavior:LITE?'auto':'smooth'}); });
+}
+
 /* ===================== โครงหน้า ===================== */
 const UI={tab:'home',tocOpen:false};
 const TABS=[['home','หน้าแรก',I.home],['book','อ่านหนังสือ',I.book],['quiz','ข้อสอบ',I.quiz],['set','ตั้งค่า',I.cog]];
 function go(tab,opt){UI.tab=tab;if(opt) Object.assign(UI,opt);render();window.scrollTo(0,0);}
 function render(){
   const v=$('#view');
-  v.innerHTML=({home:homeHTML,book:bookHTML,quiz:quizHTML,set:setHTML}[UI.tab]||homeHTML)();
+  v.innerHTML=({home:homeHTML,book:bookHTML,quiz:quizHTML,prime:primeHTML,set:setHTML}[UI.tab]||homeHTML)();
   renderNav(); bind();
   if(UI.tab==='book') bookBind();
   if(UI.tab==='set') setBind();
+  if(UI.tab==='quiz') quizBind();
+  if(UI.tab==='prime') primeBind();
   timerPill();
 }
 function renderNav(){
-  const cur=UI.tab;
-  $('#tabs').innerHTML='<div>'+TABS.map(([id,l,ic])=>`<button class="tab rp ${cur===id?'on':''}" data-tab="${id}" ${cur===id?'aria-current="page"':''}><span class="ico">${ic}${id==='quiz'?'<i class="dot"></i>':''}</span>${l}</button>`).join('')+'</div>';
+  const cur=UI.tab==='prime'?'quiz':UI.tab;
+  $('#tabs').innerHTML='<div>'+TABS.map(([id,l,ic])=>`<button class="tab rp ${cur===id?'on':''}" data-tab="${id}" ${cur===id?'aria-current="page"':''}><span class="ico">${ic}</span>${l}</button>`).join('')+'</div>';
   const rd=readPct();
   $('#side').innerHTML=`<div class="side-in">
     <button class="brand rp" data-tab="home" aria-label="JinoonCalc หน้าแรก">${MARK}<span>${WORD}<small>Pharmaceutical Calculation</small></span></button>
     <button class="btn side-cta rp" data-read="1">${I.book}อ่านบทที่ 1 ต่อ</button>
-    <nav class="snav" aria-label="เมนูหลัก">${TABS.map(([id,l,ic])=>`<button class="si rp ${cur===id?'on':''}" data-tab="${id}" ${cur===id?'aria-current="page"':''}>${ic}<span>${l}</span>${id==='quiz'?'<i class="soon-tag">เร็วๆ นี้</i>':''}</button>`).join('')}</nav>
+    <nav class="snav" aria-label="เมนูหลัก">${TABS.map(([id,l,ic])=>`<button class="si rp ${cur===id?'on':''}" data-tab="${id}" ${cur===id?'aria-current="page"':''}>${ic}<span>${l}</span></button>`).join('')}</nav>
     <div class="scard"><span class="scat">${beetleCar({mood:'wink'})}</span><div class="scard-h"><span>อ่านบทที่ 1 ไปแล้ว</span><b class="num">${rd}%</b></div>${meter(rd)}<small class="num">หน้า ${ST.bookPage||1} จาก ${BOOK.n}</small></div>
     <div class="sfoot"><button class="iconbtn rp" data-act="theme" aria-label="${ST.theme==='dark'?'เปลี่ยนเป็นโหมดสว่าง':'เปลี่ยนเป็นโหมดมืด'}">${ST.theme==='dark'?I.sun:I.moon}</button><button class="iconbtn rp" data-act="sound" data-silent="1" aria-label="${ST.sound?'ปิดเสียง':'เปิดเสียง'}">${ST.sound?I.sOn:I.sOff}</button><span id="tp-side"></span></div></div>`;
 }
@@ -489,9 +1062,9 @@ function homeHTML(){
     <div class="hero-main">
      <p class="eyebrow num">Pharmaceutical Calculation · PHT111</p>
      <h1>คำนวณเภสัช<br><span class="hl">ขับไปกับจีนูน</span></h1>
-     <p class="lede">อ่านสรุปบทที่ 1 เลขโรมัน และเลขนัยสำคัญ ซูมได้ทุกหน้า บทอื่นและข้อสอบกำลังตามมา</p>
+     <p class="lede">อ่านสรุปบทที่ 1 เลขโรมัน และเลขนัยสำคัญ แล้วลองทำข้อสอบแบบพิมพ์ตอบและช้อยส์ ทุกข้อมีเฉลยพร้อมหลักการคิด</p>
      <div class="cta-row"><button class="btn lg rp" data-read="1">${I.book}${p>1?'อ่านต่อหน้า '+p:'เริ่มอ่านบทที่ 1'}</button>
-      <button class="btn ghost lg rp" data-tab="quiz">${I.quiz}ข้อสอบ</button></div>
+      <button class="btn ghost lg rp" data-tab="quiz">${I.quiz}ทำข้อสอบบทที่ 1</button></div>
     </div>
     <div class="hero-side">
      <div class="hero-cat">${beetleCar({mood:'happy'})}</div>
@@ -504,7 +1077,8 @@ function homeHTML(){
    <div class="chgrid">${CHAPTERS.map(chCard).join('')}</div>
    <div class="sec"><div><h2>เครื่องมือ</h2></div></div>
    <div class="tools">
-    <button class="tool rp" data-tab="quiz"><span class="tool-ic">${I.quiz}</span><span><b>ข้อสอบ</b><small>ยังไม่พร้อมใช้งาน</small></span>${I.chev}</button>
+    <button class="tool rp" data-tab="prime"><span class="tool-ic">${I.bulb}</span><span><b>ปูพื้นฐานก่อนสอบ</b><small>สรุปกฎทุกเรื่องพร้อมตัวอย่าง</small></span>${I.chev}</button>
+    <button class="tool rp" data-tab="quiz"><span class="tool-ic">${I.quiz}</span><span><b>ข้อสอบบทที่ 1</b><small>${ST.qz.ans?`ทำแล้ว ${ST.qz.ans} ข้อ · แม่นยำ ${Math.round(ST.qz.ok/ST.qz.ans*100)}%`:'พิมพ์ตอบ ช้อยส์ พร้อมเฉลย'}</small></span>${I.chev}</button>
     <button class="tool rp" data-read="1"><span class="tool-ic">${I.book}</span><span><b>อ่านหนังสือ</b><small>บทที่ 1 · ${BOOK.n} หน้า ซูมได้</small></span>${I.chev}</button>
     <button class="tool rp" data-dl="1"><span class="tool-ic">${I.dl}</span><span><b>ดาวน์โหลด PDF บทที่ 1</b><small>บันทึกเก็บไว้อ่านแบบออฟไลน์</small></span>${I.chev}</button>
     <button class="tool rp" data-act="timer"><span class="tool-ic">${I.timer}</span><span><b>ตั้งเวลาอ่านหนังสือ</b><small>นับถอยหลัง และเตือนพักสายตาทุก ${ST.rest.min} นาที</small></span>${I.chev}</button>
@@ -517,26 +1091,6 @@ function chCard(c){
   return `<button class="chc rp" data-read="${c.id}"><span class="chc-top"><span class="chc-no num">บทที่ ${c.id}</span><span class="chc-ic">${I.calc}</span></span>
     <span class="chc-t">${esc(c.name)}</span><span class="chc-en">${esc(c.en)}</span>
     <span class="chc-ft"><span class="num">${c.n} หน้า</span><b class="num">${rd}%</b></span>${meter(rd)}</button>`;
-}
-
-/* ---------- ข้อสอบ: ทำโครงไว้ ยังไม่เปิดใช้ ---------- */
-const LVQ=[['easy','ง่าย','ความจำ ถามตรง'],['mid','ปานกลาง','คำนวณ แปลงค่า'],['hard','ยาก','วิเคราะห์ หลายขั้น']];
-function quizHTML(){
-  return pageHead('ข้อสอบ','โจทย์คำนวณเภสัชพร้อมเฉลย แยกระดับ ง่าย ปานกลาง ยาก')+`
-   <section class="na">${beetleCar({mood:'sad',cls:'na-msc',label:'แมงจีนูนรถจอดรอ'})}
-    <div><span class="na-tag">${I.lock}ยังไม่พร้อมใช้งาน</span><h2>ส่วนข้อสอบยังไม่พร้อมใช้งาน</h2><p>กำลังเตรียมโจทย์อยู่ ระหว่างนี้อ่านสรุปบทที่ 1 ไปก่อนได้เลย</p>
-     <button class="btn rp" data-read="1">${I.book}ไปอ่านบทที่ 1</button></div></section>
-   <div class="skel" aria-hidden="true">
-    <div class="sec"><div><h2>เลือกระดับ</h2></div></div>
-    <div class="lvseg">${LVQ.map(([id,n,d])=>`<button class="ls rp ls-${id}" data-na="1" tabindex="-1"><b>${n}</b><small>${d}</small></button>`).join('')}</div>
-    <div class="sec"><div><h2>เลือกบท</h2></div></div>
-    <div class="list">${CHAPTERS.map(c=>`<button class="trow rp" data-na="1" tabindex="-1"><span class="trow-b"><b>บทที่ ${c.id}${c.ready?' '+esc(c.name):''}</b><small>${c.ready?'เลขโรมัน · เลขนัยสำคัญ':'Coming soon'}</small></span><span class="trow-go">${I.lock}</span></button>`).join('')}</div>
-   </div>
-   <button class="btn lg rp wide na-go" data-na="1">${I.play}เริ่มทำข้อสอบ</button></div>`;
-}
-function notReady(){
-  const L=$('#layer'); L.innerHTML=`<div class="scrim center" id="cf"><div class="dlg" role="dialog" aria-modal="true" aria-labelledby="nat"><div class="dlg-cat">${beetleCar({mood:'sad'})}</div><h3 id="nat">ยังไม่พร้อมใช้งาน</h3><p>ส่วนข้อสอบกำลังเตรียมอยู่ ไว้เปิดเมื่อไหร่จะใช้ได้ทันที</p><div class="btns"><button class="btn rp" id="cf-no">รับทราบ</button></div></div></div>`;
-  const close=()=>{L.innerHTML='';}; $('#cf-no').onclick=close; $('#cf').onclick=e=>{if(e.target.id==='cf')close();}; $('#cf-no').focus();
 }
 
 /* ---------- ตั้งค่า ---------- */
@@ -565,7 +1119,6 @@ function bind(){
   $$('[data-tab]').forEach(b=>b.onclick=()=>go(b.dataset.tab));
   $$('[data-read]').forEach(b=>b.onclick=()=>{ const id=+b.dataset.read; const c=chOf(id); if(!c||!c.ready) return soon(id); UI.bookJump=Math.max(1,ST.bookPage||1); go('book'); });
   $$('[data-soon]').forEach(b=>b.onclick=()=>soon(+b.dataset.soon));
-  $$('[data-na]').forEach(b=>b.onclick=notReady);
   $$('[data-dl]').forEach(b=>b.onclick=openDL);
   $$('[data-act]').forEach(b=>b.onclick=()=>ACT[b.dataset.act]&&ACT[b.dataset.act](b));
 }
