@@ -1,64 +1,9 @@
-/* ===================== มาสคอต: แมงจีนูนรวมร่างรถ (วาดเองทั้งหมด) ===================== */
+/* ===================== มาสคอต: น้องจีนูน (รูปจากผู้ใช้) ===================== */
 let MSC_N=0;
 function beetleCar(o={}){
-  const mood=o.mood||'happy', id='m'+(++MSC_N), cls=o.cls||'';
-  const eye=(cx,cy,rx,ry)=>{
-    if(mood==='sleep') return `<path d="M${cx-rx} ${cy+1}q${rx} ${ry*.9} ${rx*2} 0" stroke="#2A1418" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
-    if(mood==='wink'&&cx>170) return `<path d="M${cx-rx} ${cy+2}q${rx} -${ry*.9} ${rx*2} 0" stroke="#2A1418" stroke-width="3.2" fill="none" stroke-linecap="round"/>`;
-    const px=mood==='sad'?0:2;
-    return `<ellipse cx="${cx}" cy="${cy}" rx="${rx}" ry="${ry}" fill="#fff" stroke="#2A1418" stroke-width="2.4"/>
-      <ellipse cx="${cx+px}" cy="${cy+2}" rx="${rx*.62}" ry="${ry*.66}" fill="#2A1418"/>
-      <circle cx="${cx+px+rx*.25}" cy="${cy-ry*.25}" r="${rx*.24}" fill="#fff"/><circle cx="${cx+px-rx*.2}" cy="${cy+ry*.3}" r="${rx*.11}" fill="#fff"/>`;
-  };
-  const mouth=mood==='sleep'?`<ellipse cx="208" cy="128" rx="5" ry="4" fill="#5A0D1A"/>`
-    :mood==='sad'?`<path d="M196 133q12-8 24 0" stroke="#2A1418" stroke-width="3" fill="none" stroke-linecap="round"/>`
-    :`<path d="M192 124q14 15 30 0" fill="#5A0D1A" stroke="#2A1418" stroke-width="2.6" stroke-linejoin="round"/><path d="M199 129q8 5 16 0" fill="#FF7A8A"/>
-      <path d="M194 125h26" stroke="#fff" stroke-width="2" opacity=".9"/>`;
-  const zz=mood==='sleep'?`<g fill="#2A1418" font-family="Mali,sans-serif" font-weight="700" opacity=".75"><text x="196" y="30" font-size="20">z</text><text x="212" y="16" font-size="14">z</text></g>`:'';
-  return `<svg class="msc ${cls}" viewBox="0 0 240 200" role="img" aria-label="${o.label||'มาสคอตแมงจีนูนรถซิ่ง'}">
-  <defs>
-   <linearGradient id="${id}r" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F0384F"/><stop offset=".55" stop-color="#C8102E"/><stop offset="1" stop-color="#7E0A1E"/></linearGradient>
-   <linearGradient id="${id}g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7BE3A4"/><stop offset=".35" stop-color="#25B566"/><stop offset=".7" stop-color="#0E7A45"/><stop offset="1" stop-color="#0A5A36"/></linearGradient>
-   <linearGradient id="${id}w" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#DFF4FF"/><stop offset="1" stop-color="#9CCFEA"/></linearGradient>
-   <radialGradient id="${id}s" cx=".35" cy=".3" r=".6"><stop offset="0" stop-color="#fff" stop-opacity=".75"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-  </defs>
-  <ellipse cx="122" cy="186" rx="96" ry="9" fill="#2A1418" opacity=".16"/>
-  <!-- ขาแมลงเล็กๆ -->
-  <g stroke="#3B2216" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-   <path d="M106 156l-5 13 5 6"/><path d="M124 156l1 14 7 4"/><path d="M142 156l6 12 7 3"/>
-  </g>
-  <!-- ปีกหลังเป็นสปอยเลอร์ -->
-  <path d="M30 92c-14-6-22-2-22 6 0 7 9 11 26 10z" fill="#E9F7EE" stroke="#2A1418" stroke-width="2.4" opacity=".95"/>
-  <path d="M14 98c6 1 12 2 18 1" stroke="#9FD6B5" stroke-width="2" fill="none"/>
-  <!-- ตัวรถ -->
-  <path d="M26 112c0-14 10-22 26-23l118-2c26 0 46 10 52 30l4 14c2 8-2 16-10 18H38c-8 0-12-6-12-13z" fill="url(#${id}r)" stroke="#2A1418" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M40 104c40-4 110-5 160 0" stroke="#fff" stroke-width="3.5" opacity=".45" fill="none" stroke-linecap="round"/>
-  <!-- ซุ้มล้อ -->
-  <path d="M42 149a28 28 0 0 1 56 0z" fill="#5A0814" stroke="#2A1418" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M150 149a28 28 0 0 1 56 0z" fill="#5A0814" stroke="#2A1418" stroke-width="3" stroke-linejoin="round"/>
-  <!-- กระดองปีกแข็ง (elytra) เป็นห้องโดยสาร -->
-  <path d="M48 96c2-42 38-70 82-70 38 0 64 24 70 62l1 8z" fill="url(#${id}g)" stroke="#2A1418" stroke-width="3" stroke-linejoin="round"/>
-  <path d="M130 27c-8 22-10 46-8 69" stroke="#0A4A2C" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-  <g stroke="#0A5A36" stroke-width="1.6" fill="none" opacity=".55" stroke-linecap="round"><path d="M70 90c2-24 14-42 34-52"/><path d="M84 92c1-20 9-36 24-46"/><path d="M98 93c0-16 6-30 16-39"/></g>
-  <ellipse cx="96" cy="50" rx="30" ry="14" fill="url(#${id}s)" transform="rotate(-24 96 50)"/>
-  <!-- กระจกหน้า = ใบหน้า -->
-  <path d="M142 92c0-26 8-46 22-54 18 8 30 28 32 54z" fill="url(#${id}w)" stroke="#2A1418" stroke-width="2.6" stroke-linejoin="round"/>
-  <path d="M158 46l-8 30M166 44l-10 38" stroke="#fff" stroke-width="3" opacity=".8" stroke-linecap="round"/>
-  ${eye(160,70,9,11)}${eye(183,70,8,10.5)}
-  <ellipse cx="152" cy="86" rx="6" ry="3.4" fill="#FF8FA0" opacity=".8"/><ellipse cx="192" cy="86" rx="5" ry="3" fill="#FF8FA0" opacity=".8"/>
-  <!-- หนวดแมงจีนูน ปลายเป็นแผงใบ -->
-  <g stroke="#3B2216" stroke-width="3.4" fill="none" stroke-linecap="round"><path d="M168 38c4-14 14-22 28-24"/><path d="M178 42c8-10 20-14 34-12"/></g>
-  <g fill="#6B3B1F" stroke="#2A1418" stroke-width="1.6"><path d="M196 14c4-8 12-10 14-6-4 2-8 5-14 6z"/><path d="M196 14c6-3 14-1 14 4-5-1-9-2-14-4z"/><path d="M196 14c5 1 10 6 8 10-3-3-6-6-8-10z"/>
-   <path d="M212 30c5-7 13-8 15-3-5 1-9 3-15 3z"/><path d="M212 30c7-2 14 1 13 6-5-2-9-3-13-6z"/><path d="M212 30c4 2 9 7 6 11-2-4-4-7-6-11z"/></g>
-  <!-- กระจังหน้ายิ้ม ไฟหน้า -->
-  ${mouth}
-  <path d="M206 104l14 4c2 1 2 4 0 5l-14 1c-3 0-4-2-4-4v-3c0-2 2-3 4-3z" fill="#FFE27A" stroke="#2A1418" stroke-width="2.2"/>
-  <circle cx="124" cy="120" r="7" fill="#F4F1EA" stroke="#2A1418" stroke-width="2"/><path d="M120 121c2-4 6-5 8-3-1 3-4 5-8 3z" fill="#25B566"/>
-  <path d="M28 122h10" stroke="#FFB020" stroke-width="5" stroke-linecap="round"/>
-  <!-- ล้อ -->
-  ${[70,178].map(x=>`<g><circle cx="${x}" cy="156" r="22" fill="#231A1D" stroke="#2A1418" stroke-width="3"/><circle cx="${x}" cy="156" r="11" fill="#D9D4D6" stroke="#2A1418" stroke-width="2.2"/><circle cx="${x}" cy="156" r="3.5" fill="#25B566"/><path d="M${x} 146v4M${x} 162v4M${x-10} 156h4M${x+6} 156h4" stroke="#8A8285" stroke-width="2" stroke-linecap="round"/></g>`).join('')}
-  ${zz}
- </svg>`;
+  const mood=o.mood||'happy', cls=o.cls||'', small=o.small||o.label==='';
+  const src=small?'img/jinoon-160.webp':'img/jinoon.webp';
+  return `<img class="msc msc-${mood} ${cls}" src="${src}" alt="${o.label===''?'':(o.label||'มาสคอตน้องจีนูน')}" ${o.label===''?'aria-hidden="true"':''} draggable="false" decoding="async">`;
 }
 
 /* ===================== เสียงกดปุ่มแบบคลิกสั้นๆ สไตล์ไอโฟน (สังเคราะห์สดด้วย Web Audio) ===================== */

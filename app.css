@@ -580,10 +580,10 @@ svg{width:20px;height:20px;flex:none}
 
 /* ===================== ส่วนเพิ่มของ JinoonCalc ===================== */
 .msc{width:100%;height:auto;display:block;overflow:visible}
-:root[data-theme="dark"] .msc{filter:drop-shadow(0 0 1.5px rgba(255,240,235,.85)) drop-shadow(0 0 8px rgba(255,240,235,.12))}
+:root[data-theme="dark"] .msc{filter:drop-shadow(0 0 1.5px rgba(255,240,235,.6)) drop-shadow(0 0 10px rgba(255,240,235,.12))}
 :root[data-theme="dark"] .rest .msc{filter:none}
 .brand .mark{display:grid;place-items:center;background:var(--leaf-s);border-radius:12px;overflow:hidden;padding:3px}
-.brand .mark .msc{width:118%;margin-left:-4%;margin-top:6%}
+.brand .mark .msc{width:100%;margin:0}
 .word em{color:var(--leaf)}
 .hl{color:var(--brand);background:linear-gradient(transparent 62%,var(--leaf-s) 62%)}
 .hero-main::after{background:var(--leaf-s)}
@@ -1006,4 +1006,8 @@ svg{width:20px;height:20px;flex:none}
 .xrow small{color:var(--muted);font-size:13px}
 .xrow.soon{opacity:.75}
 .xrow.soon .sc-ic{background:var(--surface-3);color:var(--muted);width:44px;height:44px}
+
+img.msc{user-select:none;-webkit-user-drag:none;aspect-ratio:1;object-fit:contain}
+.msc-sad{filter:saturate(.55) brightness(.92);transform:rotate(-4deg)}
+.msc-sleep{filter:saturate(.4) brightness(.9);opacity:.85;transform:rotate(6deg)}
 
