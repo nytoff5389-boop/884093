@@ -808,8 +808,36 @@ function setSlide(){ const S=(pg)=>({src:'ตัวอย่างในสไ�
   ...['12.45 + 134.324 + 60.4786','51.43 + 2.0','123.01 + 1.2 - 50.00000','23.2 x 35.45','12.3 ÷ 22.4','432.10 x 5.5','3.45 x 160.6531','0.6214 ÷ 4.52','5.432 ÷ 0.7'].map(e=>bSFCalc(e,null,S(15)))
 ];}
 
+/* ===================== ชุดข้อสอบเพิ่มเติม: แนวชีท 20 ชุด + แนวสไลด์ 20 ชุด (ตัวเลขคงที่ทุกครั้งที่เปิด) ===================== */
+const NSETS=20;
+function seeded(seed,fn){ let a=seed>>>0; const rng=()=>{a=(a+0x6D2B79F5)>>>0;let t=a;t=Math.imul(t^(t>>>15),t|1);t^=t+Math.imul(t^(t>>>7),t|61);return ((t^(t>>>14))>>>0)/4294967296;};
+  const orig=Math.random; Math.random=rng; try{ return fn(); } finally{ Math.random=orig; } }
+/* โครงเหมือนชีท: ข้อ 1 ถึง 4.4 รวม 40 ข้อ */
+const SHEET_PLAN=[['a2r','easy','ข้อ 1'],['a2r','mid','ข้อ 1'],['a2r','mid','ข้อ 1'],['a2r','hard','ข้อ 1'],
+  ['r2a','hard','ข้อ 2'],['r2a','hard','ข้อ 2'],['r2a','mid','ข้อ 2'],['r2a','mid','ข้อ 2'],
+  ['rcalc','easy','ข้อ 3'],['rcalc','easy','ข้อ 3'],['rcalc','hard','ข้อ 3'],['rcalc','hard','ข้อ 3'],['rcalc','mid','ข้อ 3'],['rcalc','mid','ข้อ 3'],
+  ['sfcount','easy','ข้อ 4'],['sfcount','mid','ข้อ 4'],['sfcount','hard','ข้อ 4'],['sfcount','mid','ข้อ 4'],['sfcount','mid','ข้อ 4'],['sfcount','hard','ข้อ 4'],['sfcount','hard','ข้อ 4'],
+  ['cyl',null,'ข้อ 5'],
+  ['round','easy','ข้อ 4.3'],['round','easy','ข้อ 4.3'],['round','easy','ข้อ 4.3'],['round','hard','ข้อ 4.3'],['round','mid','ข้อ 4.3'],['round','easy','ข้อ 4.3'],['round','hard','ข้อ 4.3'],
+  ['sfcalc','easy','ข้อ 4.4'],['sfcalc','hard','ข้อ 4.4'],['sfcalc','easy','ข้อ 4.4'],['sfcalc','hard','ข้อ 4.4'],['sfcalc','mid','ข้อ 4.4'],['sfcalc','hard','ข้อ 4.4'],['sfcalc','hard','ข้อ 4.4'],['sfcalc','mid','ข้อ 4.4'],['sfcalc','hard','ข้อ 4.4'],['sfcalc','easy','ข้อ 4.4'],['sfcalc','mid','ข้อ 4.4']];
+/* โครงแนวตัวอย่างในสไลด์: ไล่ตามลำดับหัวข้อในสไลด์ รวม 30 ข้อ */
+const SLIDE_PLAN=[['r2a','easy'],['r2a','easy'],['r2a','mid'],['r2a','hard'],['a2r','mid'],['a2r','mid'],['a2r','hard'],['a2r','hard'],
+  ['rcalc','easy'],['rcalc','mid'],['rcalc','mid'],['concept','mix'],
+  ['sfcount','easy'],['sfcount','mid'],['sfcount','mid'],['sfcount','hard'],['sfcount','hard'],
+  ['record','easy'],['record','mid'],['record','hard'],
+  ['round','easy'],['round','easy'],['round','mid'],['round','mid'],['round','hard'],['round','hard'],
+  ['sfcalc','easy'],['sfcalc','hard'],['sfcalc','mid'],['sfcalc','mid']];
+function buildSet(kind,no){
+  return seeded((kind==='sh'?7919:104729)*no+no*no,()=>{
+    const plan=kind==='sh'?SHEET_PLAN:SLIDE_PLAN, seen=new Set(), out=[];
+    for(const [t,lv,lab] of plan){ let q,g=0;
+      do{ if(t==='cyl'){ const step=pick([10,10,1]), v=step===10?ri(1,4)*10+ri(1,9):ri(12,45)+ri(1,9)/10; q=bCylinder(step,v,null); } else q=GEN[t](lv); g++; }while(seen.has(q.id)&&g<20);
+      seen.add(q.id); q.src=(kind==='sh'?'แนวชีท':'แนวสไลด์')+' ชุดที่ '+no; if(lab) q.no=lab; out.push(q); }
+    return out; });
+}
+
 /* ===================== ข้อสอบบทที่ 1: หน้าเลือกโหมด + ผู้เล่น ===================== */
-ST.qz=Object.assign({ans:0,ok:0,best:0,tp:{},wrong:[],last:null,style:'mix',diff:'mix',n:10,tps:['r2a','a2r','rcalc','sfcount','record','round','sfcalc','concept']},ST.qz||{});
+ST.qz=Object.assign({sets:{},ans:0,ok:0,best:0,tp:{},wrong:[],last:null,style:'mix',diff:'mix',n:10,tps:['r2a','a2r','rcalc','sfcount','record','round','sfcalc','concept']},ST.qz||{});
 const QSTYLE=[['type','พิมพ์ตอบ','แบบข้อเขียน'],['mc','ช้อยส์','เลือก 4 ตัวเลือก'],['mix','ผสม','สลับกันไป']];
 const QLV=[['mix','ผสม','ทุกระดับ'],['easy','ง่าย','ถามตรง'],['mid','ปานกลาง','หลักการลด กฎเลข 5'],['hard','ยาก','ขีดบน ยกกำลังสิบ หลายขั้น']];
 const tpAcc=t=>{const s=ST.qz.tp[t];return s&&s.all?Math.round(s.ok/s.all*100):null;};
@@ -850,6 +878,8 @@ function quizHTML(){
     <button class="qmode rp" data-qset="slide"><span class="qm-ic">${I.book}</span><span><b>ตัวอย่างในสไลด์</b><small class="num">${nL} ข้อ จากตัวอย่างและเฉลยสีแดง</small></span>${I.play}</button>
     ${Z.wrong.length?`<button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button>`:''}
    </div>
+   ${setGrid('sh','ชุดแนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีท ข้อ 1 ถึง 4.4 ตัวเลขใหม่ทุกชุด')}
+   ${setGrid('sl','ชุดแนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์ มีข้อหลักการด้วย')}
    <div class="sec"><div><h2>สุ่มโจทย์แนวเดียวกัน</h2><p>ตัวเลขใหม่ทุกครั้ง ไม่รู้จบ</p></div></div>
    <div class="panel qgen">
     <h3 class="mini">ระดับ</h3>${seg(QLV,Z.diff,'data-qdiff')}
@@ -864,6 +894,9 @@ function quizHTML(){
    <div class="sec"><div><h2>บทอื่น</h2></div></div>
    <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
 }
+function setGrid(k,t,d){ const S=ST.qz.sets||{};
+  return `<div class="sec"><div><h2>${t} ${NSETS} ชุด</h2><p>${d}</p></div></div><div class="setgrid">${Array.from({length:NSETS},(_,i)=>{const id=k+':'+(i+1),r=S[id],p=r?Math.round(r.best/r.n*100):null;
+    return `<button class="setc rp ${r?(p>=80?'hi':p>=50?'mid':'lo'):''}" data-qset="${id}" aria-label="${t} ชุดที่ ${i+1}${r?` คะแนนดีสุด ${p}%`:''}"><b class="num">${i+1}</b><small class="num">${r?p+'%':'ใหม่'}</small></button>`;}).join('')}</div>`; }
 function quizBind(){
   const Z=ST.qz, rr=()=>{const y=scrollY;render();scrollTo(0,y);};
   $$('[data-qstyle]').forEach(b=>b.onclick=()=>{Z.style=b.dataset.qstyle;save();rr();});
@@ -881,6 +914,7 @@ function startQuiz(kind,o={}){
   const Z=ST.qz; let list,title;
   if(kind==='sheet'){ list=setSheet(); title='แบบฝึกหัดในชีท'; }
   else if(kind==='slide'){ list=setSlide(); title='ตัวอย่างในสไลด์'; }
+  else if(/^(sh|sl):\d+$/.test(kind)){ const [k,n]=kind.split(':'); list=buildSet(k,+n); title=(k==='sh'?'แนวชีท':'แนวสไลด์')+' ชุดที่ '+n; }
   else if(kind==='wrong'){ list=shuf(Z.wrong.map(x=>Object.assign({},x))); title='ข้อที่เคยผิด'; }
   else { const tps=o.tps||Z.tps; if(!tps.length) return toast('เลือกอย่างน้อย 1 เรื่อง'); list=genList(tps,o.n||Z.n,Z.diff); title=tps.length===1?QT[tps[0]].n:'สุ่มโจทย์ '+(Z.diff==='mix'?'ทุกระดับ':LVN[Z.diff]); }
   /* กำหนดรูปแบบการตอบของแต่ละข้อ */
@@ -954,7 +988,9 @@ function qCheck(){
 function qNext(){ const P=QP; if(P.i<P.list.length-1){ P.i++; qRender(); const s=$('#qsc'); if(s) s.scrollTop=0; } else qFinish(); }
 function qFinish(){
   const P=QP; P.done=true; const n=P.res.length, ok=P.res.filter(r=>r.ok).length, p=n?Math.round(ok/n*100):0;
-  ST.qz.last={title:P.title,ok,n,t:Date.now()}; save();
+  ST.qz.last={title:P.title,ok,n,t:Date.now()};
+  if(/^(sh|sl):/.test(P.kind)&&n===P.list.length){ ST.qz.sets=ST.qz.sets||{}; const r=ST.qz.sets[P.kind]; if(!r||ok>r.best) ST.qz.sets[P.kind]={best:ok,n}; }
+  save();
   const by={}; P.res.forEach(r=>{const k=r.q.t; by[k]=by[k]||[0,0]; by[k][1]++; if(r.ok) by[k][0]++;});
   $('#qp').innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ปิด">${I.x}</button><b>สรุปผล · ${esc(P.title)}</b></div></div>
    <div class="pl-sc"><div class="stage"><section class="qsum">
