@@ -936,29 +936,29 @@ function quizHTML(){
   const Z=ST.qz, acc=Z.ans?Math.round(Z.ok/Z.ans*100):null;
   const seg=(arr,cur,attr)=>`<div class="lvseg ${arr.length===3?'q3':''}" role="radiogroup">${arr.map(([id,n,d])=>`<button class="ls rp ${cur===id?'on':''}" role="radio" aria-checked="${cur===id}" ${attr}="${id}" data-soft="1"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`;
   return pageHead('ข้อสอบบทที่ 1','เลขโรมัน และเลขนัยสำคัญ · พิมพ์ตอบและช้อยส์ · ทุกข้อมีเฉลยพร้อมหลักการคิด')+`
-   ${primeBanner()}
    <section class="qhero qh-solo">
-    <div class="qhero-b"><div class="qstat"><div><b class="num">${Z.ans}</b><small>ทำแล้ว</small></div><div><b class="num">${acc==null?'–':acc+'%'}</b><small>แม่นยำ</small></div><div><b class="num">${Z.best}</b><small>ถูกติดกัน</small></div></div>
-     </div></section>
+    <div class="qhero-b"><div class="qstat"><div><b class="num">${Z.ans}</b><small>ทำแล้ว (ข้อ)</small></div><div><b class="num">${acc==null?'–':acc+'%'}</b><small>แม่นยำ</small></div><div><b class="num">${Z.best}</b><small>ถูกติดกัน</small></div></div>
+     <div class="qstyle"><span class="qstyle-l">รูปแบบการตอบ</span>${seg(QSTYLE,Z.style,'data-qstyle')}<small>พิมพ์ตอบ: ตัวเล็กใหญ่ เว้นวรรคหรือไม่ก็ได้ ขอแค่ตัวอักษรครบและเรียงถูก</small></div></div></section>
 
+   ${zone(1,'เตรียมตัว','อ่านสรุปกฎก่อน แล้วค่อยลุยข้อสอบ',I.bulb,'z0')}
+   ${primeBanner()}
+
+   ${zone(2,'ทำข้อสอบ','ทำเป็นชุด เหมือนสอบจริง จบแล้วดูคะแนนและเฉลย',I.quiz,'z1')}
    ${theoryCard()}
-   <div class="sec"><div><h2>รูปแบบการตอบ</h2><p>พิมพ์ตอบ: ตัวพิมพ์เล็กใหญ่ เว้นวรรคหรือไม่ก็ได้ ขอแค่ตัวอักษรครบและเรียงถูก</p></div></div>
-   ${seg(QSTYLE,Z.style,'data-qstyle')}
-   ${Z.wrong.length?`<div class="qmodes">
-    <button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button></div>`:''}
-   ${setGrid('sh','ชุดแนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีท ข้อ 1 ถึง 4.4 ตัวเลขใหม่ทุกชุด')}
-   ${setGrid('sl','ชุดแนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์ มีข้อหลักการด้วย')}
-   <div class="sec"><div><h2>สุ่มโจทย์แนวเดียวกัน</h2><p>ตัวเลขใหม่ทุกครั้ง ไม่จำกัดจำนวนข้อ</p></div></div>
-   <div class="panel qgen">
-    <h3 class="mini">ระดับ</h3>${seg(QLV,Z.diff,'data-qdiff')}
-    <h3 class="mini">เรื่อง <button class="link sm rp" data-qall="1">${Z.tps.length===Object.keys(QT).length?'เอาออกทั้งหมด':'เลือกทั้งหมด'}</button></h3>
+   ${setCard('sh','ข้อสอบแนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีทแบบฝึกหัด ข้อ 1 ถึง 4.4','พิมพ์ตอบ + ช้อยส์')}
+   ${setCard('sl','ข้อสอบแนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์','พิมพ์ตอบ + ช้อยส์')}
+
+   ${zone(3,'ฝึกซ้อม','ไม่จำกัดจำนวนข้อ อยากหยุดตอนไหนกด "หยุดและดูสรุป"',I.dice,'z2')}
+   ${Z.wrong.length?`<button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button>`:''}
+   <section class="zcard"><h3 class="zc-t">${I.dice}สุ่มโจทย์</h3><p class="zc-d">ตัวเลขใหม่ทุกครั้ง เลือกระดับและเรื่องได้</p>
+    <h4 class="mini">ระดับ</h4>${seg(QLV,Z.diff,'data-qdiff')}
+    <h4 class="mini">เรื่อง <button class="link sm rp" data-qall="1">${Z.tps.length===Object.keys(QT).length?'เอาออกทั้งหมด':'เลือกทั้งหมด'}</button></h4>
     <div class="fchips">${Object.entries(QT).map(([k,t])=>`<button class="fchip rp ${Z.tps.includes(k)?'on':''}" data-qtp="${k}" data-soft="1" aria-pressed="${Z.tps.includes(k)}">${Z.tps.includes(k)?I.check:''}${t.n}${k==='concept'?' <i class="mc-tag">ช้อยส์</i>':''}</button>`).join('')}</div>
-    <p class="qhint">${I.bulb}ไม่จำกัดจำนวนข้อ ทำไปเรื่อยๆ อยากหยุดตอนไหนกด "หยุดและดูสรุป" ได้เลย</p>
-    <button class="btn lg rp wide" data-qset="gen" ${Z.tps.length?'':'disabled'}>${I.dice}เริ่มสุ่มโจทย์</button>
-   </div>
-   <div class="sec"><div><h2>แยกตามเรื่อง</h2><p>แตะเพื่อฝึกเฉพาะเรื่องนั้น ไม่จำกัดจำนวนข้อ</p></div></div>
-   <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div>
-   <div class="sec"><div><h2>บทอื่น</h2></div></div>
+    <button class="btn lg rp wide" data-qset="gen" ${Z.tps.length?'':'disabled'}>${I.dice}เริ่มสุ่มโจทย์</button></section>
+   <section class="zcard"><h3 class="zc-t">${I.list||I.book}ฝึกทีละเรื่อง</h3><p class="zc-d">แตะเรื่องที่อยากฝึก</p>
+    <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div></section>
+
+   ${zone(4,'บทอื่น','กำลังทำ เร็วๆ นี้',I.lock,'z3')}
    <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
 }
 function primeBanner(){ const n=pmRead(), N=PRIME_L.length;
@@ -971,11 +971,19 @@ function primeBanner(){ const n=pmRead(), N=PRIME_L.length;
    <span class="pban-sp s1">${I.spark}</span><span class="pban-sp s2">${I.spark}</span></button>`; }
 function theoryCard(){ const S=ST.qz.sets||{}, all=CONCEPT.length+CFIG.length, r=CROM.size;
   const it=(id,t,n,d)=>{const x=S[id],p=x?Math.round(x.best/x.n*100):null; return `<button class="thb rp" data-qset="${id}"><b class="num">${n}</b><span><b>${t}</b><small>${d}${p!=null?` · ดีสุด ${p}%`:''}</small></span>${I.play}</button>`;};
-  return `<section class="thcard"><header><span class="th-ic">${I.quiz}</span><div><h2>ข้อช้อยทฤษฎี</h2><p>ทุกข้อจากเนื้อหาบทที่ 1 รวม <b class="num">${all}</b> ข้อ มีโจทย์อ่านค่าจากรูปกระบอกตวง <b class="num">${CFIG.length}</b> ข้อ ตอบผิดมีเฉลยพร้อมเหตุผล อยากหยุดตอนไหนก็หยุดได้</p></div></header>
+  return `<section class="thcard"><header><span class="th-ic">${I.quiz}</span><div><h2>ข้อช้อยทฤษฎี</h2><p>ช้อยส์ล้วน <b class="num">${all}</b> ข้อ รวมโจทย์อ่านค่าจากรูป <b class="num">${CFIG.length}</b> ข้อ</p><span class="sc-tag">ช้อยส์อย่างเดียว</span></div></header>
    <div class="thgrid">${it('th:all','ทำทั้งหมด',all,'สลับข้อทุกครั้ง')}${it('th:r','เลขโรมัน',r,'สัญลักษณ์ หลักการเพิ่ม ลด ขีดบน')}${it('th:s','เลขนัยสำคัญ',all-r,'การนับ อ่านค่าจากรูป การปัด การคำนวณ')}</div></section>`; }
+function zone(n,t,d,ic,c){ return `<div class="zone ${c}"><span class="zone-n num">${n}</span><div><small>ส่วนที่ ${n}</small><h2>${t}</h2><p>${d}</p></div></div>`; }
+function setCard(k,t,d,tag){ const S=ST.qz.sets||{}; const done=Array.from({length:NSETS},(_,i)=>S[k+':'+(i+1)]).filter(Boolean);
+  let nx=1; for(let i=1;i<=NSETS;i++){ if(!S[k+':'+i]){ nx=i; break; } }
+  const avg=done.length?Math.round(done.reduce((a,r)=>a+r.best/r.n,0)/done.length*100):null;
+  return `<section class="xcard"><header><span class="sc-ic ${k}">${k==='sh'?I.book:I.spark}</span><div><h3>${t}</h3><p>${d}</p><span class="sc-tag">${tag}</span></div></header>
+   <div class="sc-st"><div><b class="num">${done.length}/${NSETS}</b><small>ชุดที่ทำแล้ว</small></div><div><b class="num">${avg==null?'–':avg+'%'}</b><small>คะแนนเฉลี่ย</small></div></div>
+   <button class="btn lg rp wide" data-qset="${k}:${nx}">${I.play}เริ่มชุดที่ ${nx}</button>
+   <details class="sc-more"><summary class="rp">เลือกชุดเอง / ดูคะแนนแต่ละชุด ${I.down}</summary>${setGrid(k)}</details></section>`; }
 function setGrid(k,t,d){ const S=ST.qz.sets||{};
-  return `<div class="sec"><div><h2>${t} ${NSETS} ชุด</h2><p>${d}</p></div></div><div class="setgrid">${Array.from({length:NSETS},(_,i)=>{const id=k+':'+(i+1),r=S[id],p=r?Math.round(r.best/r.n*100):null;
-    return `<button class="setc rp ${r?(p>=80?'hi':p>=50?'mid':'lo'):''}" data-qset="${id}" aria-label="${t} ชุดที่ ${i+1}${r?` คะแนนดีสุด ${p}%`:''}"><b class="num">${i+1}</b><small class="num">${r?p+'%':'ใหม่'}</small></button>`;}).join('')}</div>`; }
+  return `<div class="setgrid">${Array.from({length:NSETS},(_,i)=>{const id=k+':'+(i+1),r=S[id],p=r?Math.round(r.best/r.n*100):null;
+    return `<button class="setc rp ${r?(p>=80?'hi':p>=50?'mid':'lo'):''}" data-qset="${id}" aria-label="ชุดที่ ${i+1}${r?` คะแนนดีสุด ${p}%`:''}"><b class="num">${i+1}</b><small class="num">${r?p+'%':'ใหม่'}</small></button>`;}).join('')}</div>`; }
 function quizBind(){
   const Z=ST.qz, rr=()=>{const y=scrollY;render();scrollTo(0,y);};
   $$('[data-qstyle]').forEach(b=>b.onclick=()=>{Z.style=b.dataset.qstyle;save();rr();});
