@@ -554,7 +554,7 @@ const QT={
   record:{n:'บันทึกค่าจากการวัด',pg:10},
   round:{n:'ปัดเลขนัยสำคัญ',pg:11},
   sfcalc:{n:'คำนวณตามหลักเลขนัยสำคัญ',pg:14},
-  concept:{n:'หลักการและนิยาม',pg:3}
+  concept:{n:'ทฤษฎีและหลักการ',pg:3}
 };
 const LVN={easy:'ง่าย',mid:'ปานกลาง',hard:'ยาก'};
 const ri=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
@@ -639,7 +639,7 @@ function bSFCount(numStr,lv,o={}){
   exp.push(`วิธีนับเร็ว: เริ่มจากเลขที่ไม่ใช่ 0 ตัวแรกทางซ้าย นับไปจนสุดทางขวา → <b>${sg.amb?`${sg.n} ถึง ${sg.max} ตัว`:sg.n+' ตัว'}</b>`);
   const show=sg.amb?`${sg.n}-${sg.max}`:String(sg.n);
   const q=mkQ('sfcount',lv||(isSci||sg.amb?'hard':/^0|0$|[1-9]0+[1-9]/.test(s)?'mid':'easy'),'จงระบุจำนวนเลขนัยสำคัญของจำนวนต่อไปนี้',numStr,[F(sg.amb?'range':'num',show,sg.amb?[`${sg.n}ถึง${sg.max}`]:[],{unit:'ตัว'})],exp,o);
-  q.bigHTML=sciHTML(esc(numStr)); q.hint=sg.amb||Math.random()<.3?'ถ้าบอกจำนวนแน่นอนไม่ได้ ให้ตอบเป็นช่วง เช่น 2-4':'';
+  q.bigHTML=sciHTML(esc(numStr)); q.hint='ถ้าบอกจำนวนแน่นอนไม่ได้ ให้ตอบเป็นช่วง เช่น 2-4';
   const all=s.replace('.','').length;
   const w=sg.amb?[String(sg.n),String(sg.max),`${sg.n}-${sg.max+1}`,`${Math.max(1,sg.n-1)}-${sg.max}`]:[String(all),String(sg.n+1),String(Math.max(1,sg.n-1)),String(sg.n+2),`${sg.n}-${sg.n+2}`];
   return withMC(q,w);
@@ -654,7 +654,7 @@ function bRound(numStr,k,lv,o={}){
   if(R.sci) exp.push(`จำนวนเต็มที่ต้องตัดหลักทิ้ง ให้เขียนแบบยกกำลังสิบเพื่อบอกจำนวนเลขนัยสำคัญให้ชัด: ${sciHTML(R.sci)}${R.res!==R.sci?` (หรือ ${esc(R.res)})`:''}`);
   exp.push(`คำตอบ <b>${showAns(main)}</b>`);
   const q=mkQ('round',lv||(R.rule.startsWith('5')?(R.rule==='5more'||R.rule.includes('zero')?'hard':'mid'):R.sci||/^0\.0/.test(numStr)?'hard':'easy'),`จงทำให้มีเลขนัยสำคัญ ${k} ตัว ตามกฎการปัดเลข`,numStr,[F('num',main,alts)],exp,Object.assign({sub:'k'+k},o));
-  q.bigHTML=`${esc(numStr)} <small>→ ${k} ตัว</small>`; if(R.sci) q.hint='เขียนแบบยกกำลังสิบได้ เช่น 2.4x10^3';
+  q.bigHTML=`${esc(numStr)} <small>→ ${k} ตัว</small>`; q.hint='ถ้าต้องเขียนแบบยกกำลังสิบ พิมพ์เช่น 2.4x10^3';
   const trunc=roundInfo(numStr,'sig',k); const tStr=trunc.keptStr;
   const halfUp=(()=>{ if(!R.rule.startsWith('5')||R.up) return null; return roundInfo(numStr.replace(/5(0*)$/,'6$1'),'sig',k).res; })();
   return withMC(q,[tStr!==R.res?tStr:null,halfUp,roundInfo(numStr,'sig',k+1).res,k>1?roundInfo(numStr,'sig',k-1).res:null,R.sci?R.res.slice(0,k+1):null,(R.res.includes('.')?R.res+'0':R.res+'.0')]);
@@ -679,7 +679,7 @@ function bSFCalc(expr,lv,o={}){
   if(R.sci) exp.push(`ตัด 0 ท้ายจำนวนเต็มแล้วบอกจำนวนเลขนัยสำคัญไม่ชัด จึงเขียนเป็น ${sciHTML(R.sci)} (หรือ ${esc(R.res)})`);
   exp.push(`คำตอบ <b>${showAns(main)}</b>`);
   const q=mkQ('sfcalc',lv||(nums.length>2||R.sci?'hard':isMul?'mid':'easy'),'จงคำนวณผลลัพธ์ตามหลักเลขนัยสำคัญ',expr,[F('num',main,alts)],exp,o);
-  q.bigHTML=esc(expr.replace(/-/g,'−').replace(/\*/g,'×')); q.rule=R.rule; if(R.sci) q.hint='เขียนแบบยกกำลังสิบได้ เช่น 1.1x10^2';
+  q.bigHTML=esc(expr.replace(/-/g,'−').replace(/\*/g,'×')); q.rule=R.rule; q.hint='ถ้าต้องเขียนแบบยกกำลังสิบ พิมพ์เช่น 1.1x10^2';
   const other=isMul?roundInfo(raw,'dp',Math.min(...nums.map(dpOf))).res:roundInfo(raw,'sig',Math.min(...nums.map(n=>sigOf(n).n))).res;
   const short=rawShow.replace('…','');
   return withMC(q,[short.length<12?short:short.slice(0,10),other,isMul?roundInfo(raw,'sig',Math.min(...nums.map(n=>sigOf(n).n))+1).res:roundInfo(raw,'dp',Math.min(...nums.map(dpOf))+1).res,roundInfo(raw,'sig',1).res]);
@@ -719,6 +719,26 @@ function bRecord(kind,a,b,lv,o={}){
   q.bigHTML=`${b} mL <small>· ขีดต่ำสุด ${a} mL</small>`;
   return withMC(q,[String(b),Number(b).toFixed(dp+1),Number(b).toFixed(Math.max(1,dp-1)),Number(b).toFixed(dp+2)]);
 }
+/* ---------- ทฤษฎีแบบมีรูป (กระบอกตวง) ช้อยส์อย่างเดียว ---------- */
+const CFIG=[['rec',10,34],['rec',10,27],['rec',1,34.5],['rec',1,19],['rec',1,35],['rec',0.1,5.23],['step',10,36],['step',1,28.5],
+  ['res',10,43],['res',1,19],['sf',10,18],['sf',1,22.3],['sf',1,35],['sf',0.1,3.47],['unc',10,34],['unc',1,41.7]];
+function bCylTheory(i){ const [k,step,v]=CFIG[i]; const sdp=dpOf(step), rdp=sdp+1;
+  const rep=step>=10?String(Math.round(v)):v.toFixed(rdp), readTick=Math.floor(v/step+1e-9)*step, readS=readTick.toFixed(sdp), sf=sigOf(rep).n;
+  const resS=step>=10?'1':String(Number((step/10).toFixed(rdp)));
+  const u=(ok,c)=>{ const o=[ok]; c.forEach(x=>{ if(o.length<4&&x!=null&&!o.includes(x)) o.push(x); }); return o; };
+  const base=`ขีดที่ละเอียดที่สุดห่างกัน ${step} mL อ่านได้แน่นอนถึงขีด ${readS} mL แล้วกะประมาณเพิ่มอีก 1 หลัก (ละเอียดถึง ${resS} mL) ได้ <b>${rep} mL</b> มีเลขนัยสำคัญ ${sf} ตัว`;
+  let st,opts,why,lv=step<1?'hard':step===1?'mid':'easy';
+  if(k==='rec'){ st='จากรูป ควรบันทึกปริมาตรของเหลวอย่างไร';
+    opts=u(rep+' mL',[v.toFixed(rdp+1)+' mL',(step>=10?v.toFixed(1):v.toFixed(Math.max(0,rdp-1)))+' mL',readS+' mL',(step>=10?String(Math.round(v/10)*10):v.toFixed(rdp+2))+' mL',(+rep+(step>=10?1:Math.pow(10,-rdp))).toFixed(step>=10?0:rdp)+' mL']);
+    why=base+(Number(rep)===readTick?' (ท้องโค้งตรงขีดพอดี ค่าประมาณจึงเป็น 0 แต่ต้องเขียน 0 ไว้ด้วย)':''); }
+  else if(k==='step'){ st='จากรูป ขีดที่ละเอียดที่สุดของกระบอกตวงนี้ห่างกันกี่ mL'; opts=u(step+' mL',['10 mL','1 mL','0.1 mL','5 mL','2 mL']); why=`นับระยะระหว่างขีดเล็กที่อยู่ติดกัน ได้ขีดละ ${step} mL`; }
+  else if(k==='res'){ st='จากรูป กระบอกตวงนี้บันทึกค่าได้ละเอียดถึงกี่ mL'; opts=u(resS+' mL',[String(step)+' mL','0.01 mL','1 mL','0.1 mL','10 mL']); why=`อ่านได้แน่นอนถึงขีด (${step} mL) แล้วกะประมาณเพิ่มอีก 1 หลักที่ละเอียดกว่า 10 เท่า = ${resS} mL`; lv=lv==='easy'?'mid':lv; }
+  else if(k==='sf'){ st='ปริมาตรที่อ่านได้จากรูปมีเลขนัยสำคัญกี่ตัว'; opts=u(sf+' ตัว',[(sf+1)+' ตัว',(sf-1)+' ตัว',(sf+2)+' ตัว']); why=base; }
+  else { st='จากรูป เมื่อบันทึกค่าแล้ว ตัวเลขใดคือตัวเลขที่ไม่แน่นอน (ได้จากการกะประมาณ)'; const d=rep.replace('.','').split(''); const last=d[d.length-1];
+    opts=u(`เลข ${last}`,[...d.slice(0,-1).reverse().map(x=>`เลข ${x}`),'ทุกตัว','ไม่มีตัวที่ไม่แน่นอน']); why=base+` ตัวสุดท้าย (${last}) ได้จากการกะประมาณจึงเป็นตัวที่ไม่แน่นอน แต่ยังนับเป็นเลขนัยสำคัญ`; lv='mid'; }
+  const q=mkQ('concept',lv,st,'กระบอกตวง',[F('num',opts[0])],[why],{sub:'cf'+i,pg:10}); const sh=shuf(opts);
+  q.mc={opts:sh,ans:sh.indexOf(opts[0])}; q.mcOnly=true; q.plain=true; q.fig={k:'cyl',step,v}; return q; }
+
 /* ---------- 8. หลักการ (ช้อยส์อย่างเดียว) ---------- */
 const CONCEPT=[
   ['ระบบเลขโรมันมีสัญลักษณ์พื้นฐานกี่ตัว (รวม ss)',['8 ตัว','7 ตัว','6 ตัว','10 ตัว'],'ss = ½ และ I V X L C D M รวมเป็น 8 ตัว ระบบเลขโรมันไม่มีสัญลักษณ์แทน 0','easy',3],
@@ -740,8 +760,58 @@ const CONCEPT=[
   ['2.85 ต้องการเลขนัยสำคัญ 2 ตัว ใช้กฎข้อใด',['5 พอดีไม่มีเลขตาม เลขหน้าเป็นคู่ จึงตัดทิ้งได้ 2.8','5 ขึ้นไปปัดขึ้นเสมอ ได้ 2.9','ตัดทิ้งทุกกรณี ได้ 2.8','เลขหน้าเป็นคู่ ปัดขึ้นได้ 2.9'],'ตัวเลขที่พิจารณาคือ 5 และไม่มีเลขต่อท้าย เลขหน้า 5 คือ 8 เป็นเลขคู่ จึงตัด 5 ทิ้งเฉยๆ ได้ 2.8','hard',11],
   ['ตัวเลขที่พิจารณาคือ 5 และมีเลขที่ไม่ใช่ 0 ตามหลัง ต้องทำอย่างไร',['ปัดขึ้นเสมอ','ดูเลขหน้าว่าคู่หรือคี่','ตัดทิ้งเสมอ','ปัดลงเสมอ'],'เพราะค่าที่ตัดทิ้งมากกว่าครึ่ง เช่น 0.2352 → 2 ตัว ได้ 0.24','mid',11],
   ['2,376.55 ต้องการเลขนัยสำคัญ 2 ตัว ควรตอบข้อใด',['2.4 × 10³','24','2.3 × 10³','2,376'],'ห้ามตอบ 24 เพราะค่าเปลี่ยน ต้องเขียน 2.4 × 10³ หรือ 2,400 ซึ่งแบบยกกำลังสิบบอกจำนวนเลขนัยสำคัญได้ชัดกว่า','hard',16],
-  ['ตวงสาร 5 mL ด้วยกระบอกตวงที่อ่านได้ต่ำสุด 0.1 mL ต้องบันทึกอย่างไร',['5.00 mL','5.0 mL','5 mL','5.000 mL'],'เลข 0 ตัวแรกหลังจุดอ่านได้จากขีด และ 0 ตัวท้ายเป็นค่าประมาณ จึงบันทึก 5.00 mL','mid',11]
+  ['ตวงสาร 5 mL ด้วยกระบอกตวงที่อ่านได้ต่ำสุด 0.1 mL ต้องบันทึกอย่างไร',['5.00 mL','5.0 mL','5 mL','5.000 mL'],'เลข 0 ตัวแรกหลังจุดอ่านได้จากขีด และ 0 ตัวท้ายเป็นค่าประมาณ จึงบันทึก 5.00 mL','mid',11],
+  ['ระบบเลขโรมันมีเลข 0 หรือไม่',['ไม่มี','มี เขียนด้วย O','มี เขียนด้วย N','มีเฉพาะในใบสั่งยา'],'ระบบเลขโรมันไม่มีสัญลักษณ์แทนเลข 0','easy',3],
+  ['L มีค่าเท่าไร',['50','500','5','100'],'I 1 · V 5 · X 10 · L 50 · C 100 · D 500 · M 1,000','easy',3],
+  ['D มีค่าเท่าไร',['500','50','1,000','5,000'],'D = 500 ส่วน M = 1,000','easy',3],
+  ['C มีค่าเท่าไร',['100','1,000','50','500'],'C = 100 (มาจาก centum)','easy',3],
+  ['ss ในใบสั่งยามาจากคำว่าอะไร',['semis ภาษาละติน แปลว่าครึ่ง','single แปลว่าหนึ่ง','semi-solid กึ่งแข็ง','sixteen สิบหก'],'ss มาจาก semis แปลว่าครึ่ง จึงมีค่า ½','easy',3],
+  ['iss ในใบสั่งยามีค่าเท่าไร',['1½','½','2','11'],'i = 1 รวมกับ ss = ½ จึงได้ 1½','mid',3],
+  ['เลขโรมันเขียนด้วยตัวพิมพ์แบบใดได้',['ตัวพิมพ์เล็กหรือใหญ่ก็ได้','ตัวพิมพ์ใหญ่เท่านั้น','ตัวพิมพ์เล็กเท่านั้น','ต้องมีขีดบนทุกตัว'],'เขียนได้ทั้งตัวพิมพ์เล็กและใหญ่ เช่น xii = XII = 12','easy',3],
+  ['ตามหลักการเพิ่ม ต้องเรียงตัวเลขโรมันอย่างไร',['จากค่ามากไปค่าน้อย','จากค่าน้อยไปค่ามาก','เรียงแบบใดก็ได้','เรียงตามลำดับตัวอักษร'],'หลักการเพิ่ม: เรียงจากมากไปน้อย แล้วนำค่ามาบวกกัน เช่น CXII = 100+10+1+1','easy',4],
+  ['เลขโรมันตัวใด "ห้าม" ใช้เป็นตัวลบ',['V','I','X','C'],'ตัวลบมีแค่ I X C ส่วน V L D ใช้เป็นตัวลบไม่ได้','easy',4],
+  ['เขียน 40 เป็นเลขโรมันข้อใดถูก',['XL','XXXX','LX','VVVV'],'ซ้ำได้ไม่เกิน 3 ตัว จึงใช้หลักการลด 50 − 10 = XL (LX คือ 60)','easy',4],
+  ['เขียน 49 เป็นเลขโรมันข้อใดถูก',['XLIX','IL','XLVIIII','LIX'],'I ลบได้แค่จาก V และ X ห้ามเขียน IL ต้องเป็น 40 + 9 = XL + IX','mid',4],
+  ['เขียน 990 เป็นเลขโรมันข้อใดถูก',['CMXC','XM','DCCCCXC','CMLXL'],'X ลบได้แค่จาก L และ C ห้ามเขียน XM ต้องเป็น 900 + 90 = CM + XC','mid',4],
+  ['เขียน 400 เป็นเลขโรมันข้อใดถูก',['CD','CCCC','DC','DCCCC'],'C ลบจาก D ได้ 500 − 100 = CD (DC คือ 600)','easy',4],
+  ['ทำไม VX จึงใช้แทน 5 ไม่ได้',['เพราะ V ไม่ใช่ตัวลบ','เพราะ V ลบได้เฉพาะจาก L','เพราะเขียนซ้ำเกิน 3 ตัว','เพราะต้องมีขีดบน'],'ตัวลบมีแค่ I X C ดังนั้น 5 ต้องเขียน V ตัวเดียว','mid',4],
+  ['XC = 90 ถูกต้องตามกฎข้อใด',['X ลบได้จาก L และ C ซึ่งเป็นค่าถัดไป 2 ค่า','X ลบได้จากทุกตัวที่มากกว่า','เป็นหลักการเพิ่ม 10 + 100','C เป็นตัวลบ'],'หลักการลด: ตัวลบ I X C ลบได้จากเลขที่ค่าถัดไป 2 ค่าเท่านั้น X จึงลบได้จาก L และ C','mid',4],
+  ['ข้อใดมีค่ามากที่สุด',['MCM','MCC','MCD','MXC'],'MCM = 1,900 · MCC = 1,200 · MCD = 1,400 · MXC = 1,090','mid',4],
+  ['ข้อใดเขียนผิดหลักเลขโรมัน',['IIII','XIV','XLIV','CDXC'],'ตัวเดียวกันซ้ำได้ไม่เกิน 3 ตัว 4 ต้องเขียน IV','easy',4],
+  ['V̄ มีค่าเท่าไร',['5,000','500','50,000','5'],'ขีดบนคูณ 1,000 → 5 × 1,000 = 5,000','easy',5],
+  ['I̅ (I ขีดบน) มีค่าเท่ากับตัวใด',['M','D','C','X'],'1 × 1,000 = 1,000 เท่ากับ M','easy',5],
+  ['C̄ มีค่าเท่าไร',['100,000','10,000','1,000,000','1,000'],'100 × 1,000 = 100,000','easy',5],
+  ['M̄ มีค่าเท่าไร',['1,000,000','100,000','10,000','1,000'],'1,000 × 1,000 = 1,000,000','mid',5],
+  ['ขีดบนตัวเลขโรมันนิยมใช้เมื่อใด',['เมื่อจำนวนมากกว่า 3,999','เมื่อเป็นเลขคี่','เมื่อเป็นทศนิยม','เมื่อเป็นเลขติดลบ'],'MMM = 3,000 ซ้ำได้สูงสุด 3 ตัว จำนวนตั้งแต่ 4,000 ขึ้นไปจึงใช้ขีดบนแทนการคูณ 1,000','mid',5],
+  ['การบวก ลบ คูณ หาร เลขโรมันต้องทำอย่างไร',['แปลงเป็นเลขอารบิกก่อน แล้วจึงคำนวณ','บวกตัวอักษรตรงๆ','ตัดตัวที่ซ้ำกันออก','คำนวณทีละตัวจากขวาไปซ้าย'],'แปลงเป็นอารบิกก่อน เช่น MC × VIII = 1,100 × 8 = 8,800','easy',7],
+  ['เลขนัยสำคัญ (significant figures) หมายถึงข้อใด',['ตัวเลขทุกตัวที่ได้จากการวัด รวมตัวสุดท้ายที่กะประมาณ','เฉพาะตัวเลขที่แน่นอน','เฉพาะตัวเลขหลังจุดทศนิยม','เฉพาะตัวเลขที่ไม่ใช่ 0'],'ตัวเลขที่อ่านได้แน่นอนทั้งหมด รวมกับตัวสุดท้ายที่กะประมาณ 1 ตัว','easy',7],
+  ['ค่าที่บันทึกจากการวัด มีตัวเลขที่ไม่แน่นอนกี่ตัว',['1 ตัว คือตัวสุดท้าย','2 ตัวสุดท้าย','ไม่มีเลย','ทุกตัว'],'บันทึกถึงขีดที่ละเอียดที่สุด แล้วกะประมาณเพิ่มอีก 1 หลัก ตัวนั้นเป็นตัวที่ไม่แน่นอน','mid',7],
+  ['เลข 1 ถึง 9 นับเป็นเลขนัยสำคัญหรือไม่',['นับเสมอ','นับเฉพาะหลังจุดทศนิยม','นับเฉพาะหน้าจุดทศนิยม','ไม่นับ'],'กฎข้อ 1: ตัวเลขที่ไม่ใช่ 0 นับเป็นเลขนัยสำคัญทุกตัว','easy',8],
+  ['เลข 0 ที่อยู่ระหว่างเลขอื่น เช่น 2002',['นับเป็นเลขนัยสำคัญ','ไม่นับ','นับเฉพาะตัวแรก','ขึ้นกับเครื่องมือ'],'0 ระหว่างเลขที่ไม่ใช่ 0 นับเสมอ 2002 จึงมี 4 ตัว','easy',8],
+  ['เลข 0 ท้ายหลังจุดทศนิยม เช่น 12.50',['นับเป็นเลขนัยสำคัญ','ไม่นับ','บอกไม่ได้','นับเฉพาะเมื่อมีหน่วย'],'0 ท้ายหลังจุดทศนิยมแสดงความละเอียดของการวัด จึงนับ 12.50 มี 4 ตัว','easy',8],
+  ['0.00450 มีเลขนัยสำคัญกี่ตัว',['3 ตัว','5 ตัว','6 ตัว','2 ตัว'],'0 นำหน้าไม่นับ เหลือ 4 5 0 โดย 0 ท้ายหลังจุดนับ = 3 ตัว','mid',8],
+  ['100.0 มีเลขนัยสำคัญกี่ตัว',['4 ตัว','1 ตัว','3 ตัว','บอกไม่ได้'],'0 ท้ายหลังจุดนับ และ 0 ที่อยู่ระหว่าง 1 กับ 0 ตัวนั้นก็นับ = 4 ตัว','mid',8],
+  ['ข้อใดมีเลขนัยสำคัญ 4 ตัวแน่นอน',['2.500 × 10³','2500','0.0025','25.0'],'2500 บอกไม่ได้แน่ (2-4 ตัว) · 0.0025 มี 2 ตัว · 25.0 มี 3 ตัว','mid',8],
+  ['ต้องการบอกว่า 2500 มีเลขนัยสำคัญ 3 ตัว ควรเขียนอย่างไร',['2.50 × 10³','2.5 × 10³','2.500 × 10³','25 × 10²'],'เขียนแบบยกกำลังสิบ ส่วนหน้ามี 3 ตัว คือ 2.50','mid',8],
+  ['ตัวเลขในรูป a × 10ⁿ นับเลขนัยสำคัญจากส่วนใด',['เฉพาะ a','เฉพาะ 10ⁿ','ทั้ง a และ n','เฉพาะ n'],'นับเฉพาะ a เช่น 2566 × 10⁻⁴ มี 4 ตัว','easy',8],
+  ['บีกเกอร์ขีดละ 10 mL ระดับอยู่ระหว่าง 70 กับ 80 ค่อนไปทาง 80 ควรบันทึกแบบใด',['78 mL','78.5 mL','80 mL','70 mL'],'ขีดละเอียดสุดคือหลักสิบ จึงกะประมาณได้แค่หลักหน่วย ได้ 78 mL (2 ตัว)','mid',8],
+  ['กระบอกตวงขีดละ 1 mL บันทึกค่าได้ละเอียดถึงหลักใด',['ทศนิยม 1 ตำแหน่ง','จำนวนเต็ม','ทศนิยม 2 ตำแหน่ง','หลักสิบ'],'อ่านได้ถึงหลักหน่วยจากขีด แล้วกะประมาณเพิ่ม 1 หลัก เช่น 34.5 mL','mid',10],
+  ['อ่านปริมาตรของเหลวในกระบอกตวงต้องอ่านที่ตำแหน่งใด',['ท้องโค้ง (meniscus) ของผิวของเหลว','ขอบบนสุดของของเหลว','ขอบปากกระบอก','ก้นกระบอก'],'มองระดับสายตาตรงกับท้องโค้งของผิวของเหลว','easy',10],
+  ['"ตัวเลขที่พิจารณา" ในการปัดเลข คือตัวใด',['ตัวแรกที่จะถูกตัดทิ้ง','ตัวสุดท้ายที่เก็บไว้','ตัวแรกทางซ้ายสุด','ตัวที่มีค่ามากที่สุด'],'ดูตัวแรกที่จะถูกตัดทิ้ง แล้วใช้กฎ มากกว่า 5 / น้อยกว่า 5 / 5 พอดี','easy',11],
+  ['ถ้าตัวเลขที่พิจารณามากกว่า 5 ต้องทำอย่างไร',['ปัดขึ้น','ตัดทิ้ง','ดูเลขหน้าว่าคู่หรือคี่','ปัดลง'],'เช่น 2.46 → 2 ตัว ได้ 2.5','easy',11],
+  ['ถ้าตัวเลขที่พิจารณาน้อยกว่า 5 ต้องทำอย่างไร',['ตัดทิ้ง (ปัดลง)','ปัดขึ้น','ดูเลขหน้าว่าคู่หรือคี่','เติม 0 แทน'],'เช่น 2.43 → 2 ตัว ได้ 2.4','easy',11],
+  ['5 พอดีไม่มีเลขตาม และเลขหน้าเป็นเลขคี่ ต้องทำอย่างไร',['ปัดขึ้นให้เป็นเลขคู่','ตัดทิ้ง','ปัดลง','เก็บเลข 5 ไว้'],'เช่น 3.975 → 3 ตัว เลขหน้าคือ 7 (คี่) ปัดขึ้นได้ 3.98','mid',11],
+  ['3.975 ต้องการเลขนัยสำคัญ 3 ตัว',['3.98','3.97','4.0','3.975'],'ตัวที่พิจารณาคือ 5 พอดี เลขหน้า 7 เป็นคี่ จึงปัดขึ้น','mid',11],
+  ['0.8250 ต้องการเลขนัยสำคัญ 2 ตัว',['0.82','0.83','0.8','0.825'],'5 ตามด้วย 0 ถือว่าเป็น 5 พอดี เลขหน้า 2 เป็นคู่ จึงตัดทิ้ง','hard',11],
+  ['0.2352 ต้องการเลขนัยสำคัญ 2 ตัว',['0.24','0.23','0.235','0.2'],'ตัวที่พิจารณาคือ 5 และมี 2 ตามหลัง (ไม่ใช่ 0) จึงปัดขึ้นเสมอ','mid',11],
+  ['กรณี 5 พอดี ทำไมจึงให้ผลลงท้ายด้วยเลขคู่',['ให้โอกาสปัดขึ้นและปัดลงพอๆ กัน ลดความคลาดเคลื่อนสะสม','เพราะเลขคู่หารด้วย 2 ลงตัว','เพราะเครื่องชั่งอ่านได้แค่เลขคู่','เพื่อให้ได้เลขนัยสำคัญมากขึ้น'],'ถ้าปัดขึ้นทุกครั้ง ผลรวมจะเอียงขึ้นเรื่อยๆ การปัดให้เป็นเลขคู่ช่วยให้สมดุล','hard',11],
+  ['การคำนวณแบบใดใช้กฎ "ตำแหน่งทศนิยมน้อยที่สุด"',['การบวกและการลบ','การคูณและการหาร','การยกกำลัง','ทุกการคำนวณ'],'บวกลบดูตำแหน่งทศนิยม คูณหารดูจำนวนเลขนัยสำคัญ','easy',14],
+  ['12.1 + 0.035 + 3.24 ควรตอบอย่างไร',['15.4','15.375','15.38','15'],'ได้ 15.375 ตัวที่มีทศนิยมน้อยสุดคือ 12.1 (1 ตำแหน่ง) จึงปัดเป็น 15.4','mid',14],
+  ['2.0 × 3.00 × 4.000 ผลลัพธ์ควรมีเลขนัยสำคัญกี่ตัว',['2 ตัว','3 ตัว','4 ตัว','9 ตัว'],'คูณหารดูตัวที่มีเลขนัยสำคัญน้อยที่สุด คือ 2.0 (2 ตัว) ตอบ 24','mid',14],
+  ['4.0 × 2.555 ควรตอบอย่างไร',['1.0 × 10¹','10.22','10.2','1 × 10¹'],'ได้ 10.22 ต้องการ 2 ตัวตาม 4.0 ตอบ 10 ไม่ชัดว่ามีกี่ตัว จึงเขียน 1.0 × 10¹','hard',16],
+  ['ทำไมไม่ควรปัดเลขทุกขั้นตอน',['ความคลาดเคลื่อนจากการปัดจะสะสม ทำให้ผลเพี้ยน','เพราะเสียเวลา','เพราะผิดกฎเลขโรมัน','เพราะได้เลขนัยสำคัญมากเกินไป'],'ให้คำนวณจนเสร็จ แล้วปัดตอนท้ายครั้งเดียว','mid',16]
 ];
+const CROM=new Set([0,1,2,3,4,5,6,...Array.from({length:23},(_,k)=>20+k)]);
 function bConcept(i){ const [st,opts,why,lv,pg]=CONCEPT[i]; const sh=shuf(opts);
   const q=mkQ('concept',lv,st,'',[F('num',opts[0])],[why],{sub:'c'+i,pg}); q.mc={opts:sh,ans:sh.indexOf(opts[0])}; q.mcOnly=true; q.plain=true; return q; }
 
@@ -857,8 +927,7 @@ function cylSVG(step,v){
    <path d="M${x0+2} ${y+0.5} Q${(x0+x1)/2} ${y+12} ${x1-2} ${y+0.5} L${x1-2} ${bot+14} L${x0+2} ${bot+14}Z" fill="#7CC7F2" opacity=".55"/>
    <path d="M${x0+2} ${y+0.5} Q${(x0+x1)/2} ${y+12} ${x1-2} ${y+0.5}" fill="none" stroke="#1E78B4" stroke-width="2"/>
    ${ticks}
-   <line x1="${x0-26}" x2="${x1+26}" y1="${y+6.5}" y2="${y+6.5}" stroke="var(--brand)" stroke-width="1.6" stroke-dasharray="5 4"/>
-   <text x="${x1+30}" y="${y+11}" font-size="12" fill="var(--brand)">ท้องโค้ง</text>
+   <path d="M8 ${y+6.5}H${x0-8}M${x0-18} ${y-1}L${x0-6} ${y+6.5}L${x0-18} ${y+14}" fill="none" stroke="#3A63B8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
    <text x="${x1+8}" y="${top+2}" font-size="14" font-weight="700" fill="currentColor">mL</text></svg>`;
 }
 
@@ -867,9 +936,12 @@ function quizHTML(){
   const Z=ST.qz, acc=Z.ans?Math.round(Z.ok/Z.ans*100):null;
   const seg=(arr,cur,attr)=>`<div class="lvseg ${arr.length===3?'q3':''}" role="radiogroup">${arr.map(([id,n,d])=>`<button class="ls rp ${cur===id?'on':''}" role="radio" aria-checked="${cur===id}" ${attr}="${id}" data-soft="1"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`;
   return pageHead('ข้อสอบบทที่ 1','เลขโรมัน และเลขนัยสำคัญ · พิมพ์ตอบและช้อยส์ · ทุกข้อมีเฉลยพร้อมหลักการคิด')+`
-   <section class="qhero"><div class="qhero-msc">${beetleCar({mood:'happy'})}</div>
+   ${primeBanner()}
+   <section class="qhero qh-solo">
     <div class="qhero-b"><div class="qstat"><div><b class="num">${Z.ans}</b><small>ทำแล้ว</small></div><div><b class="num">${acc==null?'–':acc+'%'}</b><small>แม่นยำ</small></div><div><b class="num">${Z.best}</b><small>ถูกติดกัน</small></div></div>
-     <button class="prime-cta rp" data-tab="prime"><span class="pc-ic">${I.bulb}</span><span><b>ปูพื้นฐานก่อนสอบ</b><small>สรุปกฎทุกเรื่องพร้อมตัวอย่าง อ่าน 5 นาทีก่อนลุย</small></span>${I.chev}</button></div></section>
+     </div></section>
+
+   ${theoryCard()}
    <div class="sec"><div><h2>รูปแบบการตอบ</h2><p>พิมพ์ตอบ: ตัวพิมพ์เล็กใหญ่ เว้นวรรคหรือไม่ก็ได้ ขอแค่ตัวอักษรครบและเรียงถูก</p></div></div>
    ${seg(QSTYLE,Z.style,'data-qstyle')}
    ${Z.wrong.length?`<div class="qmodes">
@@ -889,6 +961,18 @@ function quizHTML(){
    <div class="sec"><div><h2>บทอื่น</h2></div></div>
    <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
 }
+function primeBanner(){ const n=pmRead(), N=PRIME_L.length;
+  return `<button class="pban rp" data-tab="prime" aria-label="ปูพื้นฐานก่อนสอบ อ่านแล้ว ${n} จาก ${N} บท">
+   <span class="pban-b"><span class="pban-k">${I.bulb}เริ่มตรงนี้ก่อนสอบ</span><b class="pban-t">ปูพื้นฐาน<br>ก่อนสอบ</b>
+    <span class="pban-d">สรุปกฎบทที่ 1 ครบ ${N} บทเรียน ตัวอย่างชัด มีโจทย์ลองคิดทุกบท</span>
+    <span class="pban-p"><span class="pban-bar"><i style="width:${Math.round(n/N*100)}%"></i></span><small class="num">อ่านแล้ว ${n}/${N}</small></span>
+    <span class="pban-go">${n?n>=N?'ทบทวนอีกรอบ':'อ่านต่อ':'เริ่มอ่านเลย'}${I.chev}</span></span>
+   <span class="pban-m">${beetleCar({mood:n>=N?'wink':'happy'})}</span>
+   <span class="pban-sp s1">${I.spark}</span><span class="pban-sp s2">${I.spark}</span></button>`; }
+function theoryCard(){ const S=ST.qz.sets||{}, all=CONCEPT.length+CFIG.length, r=CROM.size;
+  const it=(id,t,n,d)=>{const x=S[id],p=x?Math.round(x.best/x.n*100):null; return `<button class="thb rp" data-qset="${id}"><b class="num">${n}</b><span><b>${t}</b><small>${d}${p!=null?` · ดีสุด ${p}%`:''}</small></span>${I.play}</button>`;};
+  return `<section class="thcard"><header><span class="th-ic">${I.quiz}</span><div><h2>ข้อช้อยทฤษฎี</h2><p>ทุกข้อจากเนื้อหาบทที่ 1 รวม <b class="num">${all}</b> ข้อ มีโจทย์อ่านค่าจากรูปกระบอกตวง <b class="num">${CFIG.length}</b> ข้อ ตอบผิดมีเฉลยพร้อมเหตุผล อยากหยุดตอนไหนก็หยุดได้</p></div></header>
+   <div class="thgrid">${it('th:all','ทำทั้งหมด',all,'สลับข้อทุกครั้ง')}${it('th:r','เลขโรมัน',r,'สัญลักษณ์ หลักการเพิ่ม ลด ขีดบน')}${it('th:s','เลขนัยสำคัญ',all-r,'การนับ อ่านค่าจากรูป การปัด การคำนวณ')}</div></section>`; }
 function setGrid(k,t,d){ const S=ST.qz.sets||{};
   return `<div class="sec"><div><h2>${t} ${NSETS} ชุด</h2><p>${d}</p></div></div><div class="setgrid">${Array.from({length:NSETS},(_,i)=>{const id=k+':'+(i+1),r=S[id],p=r?Math.round(r.best/r.n*100):null;
     return `<button class="setc rp ${r?(p>=80?'hi':p>=50?'mid':'lo'):''}" data-qset="${id}" aria-label="${t} ชุดที่ ${i+1}${r?` คะแนนดีสุด ${p}%`:''}"><b class="num">${i+1}</b><small class="num">${r?p+'%':'ใหม่'}</small></button>`;}).join('')}</div>`; }
@@ -910,11 +994,12 @@ function startQuiz(kind,o={}){
   if(kind==='sheet'){ list=setSheet(); title='แบบฝึกหัดในชีท'; }
   else if(kind==='slide'){ list=setSlide(); title='ตัวอย่างในสไลด์'; }
   else if(/^(sh|sl):\d+$/.test(kind)){ const [k,n]=kind.split(':'); list=buildSet(k,+n); title=(k==='sh'?'แนวชีท':'แนวสไลด์')+' ชุดที่ '+n; }
+  else if(/^th:/.test(kind)){ const c=kind.slice(3); const ids=CONCEPT.map((_,i)=>i).filter(i=>c==='all'||(c==='r')===CROM.has(i)); list=shuf([...ids.map(bConcept),...(c==='r'?[]:CFIG.map((_,i)=>bCylTheory(i)))]); title='ข้อช้อยทฤษฎี'+(c==='r'?' · เลขโรมัน':c==='s'?' · เลขนัยสำคัญ':''); o.stop=true; }
   else if(kind==='wrong'){ list=shuf(Z.wrong.map(x=>Object.assign({},x))); title='ข้อที่เคยผิด'; }
   else { const tps=o.tps||Z.tps; if(!tps.length) return toast('เลือกอย่างน้อย 1 เรื่อง'); list=genList(tps,5,Z.diff); o.endless={tps,diff:Z.diff}; title=tps.length===1?QT[tps[0]].n:'สุ่มโจทย์ '+(Z.diff==='mix'?'ทุกระดับ':LVN[Z.diff]); }
   /* กำหนดรูปแบบการตอบของแต่ละข้อ */
   list.forEach((q,i)=>qAs(q,i));
-  QP={kind,title,list,i:0,ok:0,streak:0,res:[],done:false,endless:o.endless||null,tps:o.tps};
+  QP={kind,title,list,i:0,ok:0,streak:0,res:[],done:false,endless:o.endless||null,tps:o.tps,stop:!!o.stop};
   openQuiz();
 }
 let QP=null;
@@ -934,7 +1019,7 @@ function qRender(){
   const ans=q.as==='mc'?`<div class="qopts" role="radiogroup" aria-label="ตัวเลือก">${q.mc.opts.map((o,i)=>`<button class="qopt rp" data-op="${i}" role="radio" aria-checked="false"><span class="qk num">${'กขคง'[i]}</span><span class="qo-t">${q.plain?esc(o):showAns(o)}</span></button>`).join('')}</div>`
     :`<div class="qfields ${multi?'multi':''}">${q.fields.map((f,i)=>`<label class="qf"><span class="qf-l">${f.lab?esc(f.lab):'คำตอบ'}</span><span class="qf-in"><input id="qi${i}" class="qin ${f.kind==='roman'||f.kind==='rnum'?'rom':''}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="${f.kind==='roman'||f.kind==='rnum'?'text':'decimal'}" enterkeyhint="${i<q.fields.length-1?'next':'done'}" aria-label="${esc(f.lab||'คำตอบ')}">${f.unit?`<i>${f.unit}</i>`:''}</span></label>`).join('')}</div>
      ${kp(q.fields[0].kind)}${q.hint?`<p class="qhint">${I.bulb}${esc(q.hint)}</p>`:''}`;
-  el.innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ออก">${I.x}</button>${P.endless?`<b class="num qn-end">ข้อที่ ${P.i+1}</b><span class="top-sp"></span>${P.res.length?`<button class="btn ghost sm rp" id="qstop">หยุดและดูสรุป</button>`:''}`:`<div class="pline"><i style="width:${pct}%"></i></div><b class="num">${P.i+1}/${P.list.length}</b>`}<span class="pst num">${I.check}${P.ok}</span></div></div>
+  el.innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ออก">${I.x}</button>${P.endless?`<b class="num qn-end">ข้อที่ ${P.i+1}</b><span class="top-sp"></span>${P.res.length?`<button class="btn ghost sm rp" id="qstop">หยุดและดูสรุป</button>`:''}`:`<div class="pline"><i style="width:${pct}%"></i></div><b class="num">${P.i+1}/${P.list.length}</b>${P.stop&&P.res.length?`<button class="btn ghost sm rp" id="qstop">หยุด</button>`:''}`}<span class="pst num">${I.check}${P.ok}</span></div></div>
    <div class="pl-sc" id="qsc"><div class="stage"><article class="qcard">
     <div class="qmeta"><span class="qtopic">${QT[q.t].n}</span><span class="lv lv-${q.lv}">${LVN[q.lv]}</span>${q.src?`<span class="qsrc">${esc(q.src)}${q.no?' · '+esc(q.no):''}</span>`:''}<span class="qtype">${q.as==='mc'?'ช้อยส์':'พิมพ์ตอบ'}</span></div>
     <p class="stem">${esc(q.stem)}</p>${!q.fig&&(q.bigHTML||q.big)?`<div class="qbig">${q.bigHTML||esc(q.big)}</div>`:''}${fig(q)?`<div class="qfig">${fig(q)}</div>`:''}
@@ -988,7 +1073,7 @@ function qNext(){ const P=QP;
 function qFinish(){
   const P=QP; P.done=true; const n=P.res.length, ok=P.res.filter(r=>r.ok).length, p=n?Math.round(ok/n*100):0;
   ST.qz.last={title:P.title,ok,n,t:Date.now()};
-  if(/^(sh|sl):/.test(P.kind)&&n===P.list.length){ ST.qz.sets=ST.qz.sets||{}; const r=ST.qz.sets[P.kind]; if(!r||ok>r.best) ST.qz.sets[P.kind]={best:ok,n}; }
+  if(/^(sh|sl|th):/.test(P.kind)&&n===P.list.length){ ST.qz.sets=ST.qz.sets||{}; const r=ST.qz.sets[P.kind]; if(!r||ok>r.best) ST.qz.sets[P.kind]={best:ok,n}; }
   save();
   const by={}; P.res.forEach(r=>{const k=r.q.t; by[k]=by[k]||[0,0]; by[k][1]++; if(r.ok) by[k][0]++;});
   $('#qp').innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ปิด">${I.x}</button><b>สรุปผล · ${esc(P.title)}</b></div></div>
@@ -1011,45 +1096,67 @@ addEventListener('keydown',e=>{ if(!QP||!$('#qp')) return; if(e.key==='Escape'){
 
 /* ===================== ปูพื้นฐานก่อนสอบ ===================== */
 const PRIME=[
- {id:'r1',t:'เลขโรมันพื้นฐาน',tp:'r2a',pg:3,b:`<p>ระบบเลขโรมัน <b>ไม่มีเลข 0</b> มีสัญลักษณ์พื้นฐาน 8 ตัว เขียนตัวพิมพ์เล็กหรือใหญ่ก็ได้</p>
+ {id:'r1',qz:['XVII มีค่าเท่าไร',['17','15','22','12'],'X 10 + V 5 + I 1 + I 1 = 17 เรียงจากมากไปน้อยแล้วบวกกัน'],t:'เลขโรมันพื้นฐาน',tp:'r2a',pg:3,b:`<p>ระบบเลขโรมัน <b>ไม่มีเลข 0</b> มีสัญลักษณ์พื้นฐาน 8 ตัว เขียนตัวพิมพ์เล็กหรือใหญ่ก็ได้</p>
    <div class="pm-tb">${[['ss','½'],['I','1'],['V','5'],['X','10'],['L','50'],['C','100'],['D','500'],['M','1,000']].map(([a,b])=>`<span><b>${a}</b><small>${b}</small></span>`).join('')}</div>
    <p class="pm-tip">${I.bulb}ท่อง I V X L C D M ค่าจะสลับ ×5 กับ ×2 ไปเรื่อยๆ</p>
    <h4>หลักการเพิ่ม (3 ข้อ ใช้พร้อมกัน)</h4><ol><li>เรียงจากค่ามากไปน้อย</li><li>นำค่าแต่ละตัวมาบวกกัน</li><li>ตัวเดียวกันซ้ำได้ไม่เกิน 3 ตัว</li></ol>
    <p class="pm-ex">CXII = 100 + 10 + 1 + 1 = 112 · MCCCLXVII = 1,000 + 300 + 50 + 10 + 5 + 2 = 1,367</p>`},
- {id:'r2',t:'หลักการลด',tp:'a2r',pg:4,b:`<p>เขียน<b>ตัวน้อยไว้หน้าตัวมาก</b>แล้วลบกัน มีกติกา 2 ข้อ</p><ol><li>ตัวลบมีแค่ <b>I, X, C</b></li><li>ลบได้จากเลขที่ค่าถัดไป 2 ค่าเท่านั้น</li></ol>
+ {id:'r2',qz:['ข้อใดเขียน 9 ถูกต้อง',['IX','VIIII','IIX','XI'],'I ลบจาก X ได้ 10 − 1 = 9 (XI คือ 11 และห้ามซ้ำเกิน 3 ตัว)'],t:'หลักการลด',tp:'a2r',pg:4,b:`<p>เขียน<b>ตัวน้อยไว้หน้าตัวมาก</b>แล้วลบกัน มีกติกา 2 ข้อ</p><ol><li>ตัวลบมีแค่ <b>I, X, C</b></li><li>ลบได้จากเลขที่ค่าถัดไป 2 ค่าเท่านั้น</li></ol>
    <div class="pm-tb w">${[['I','V, X','IV 4 · IX 9'],['X','L, C','XL 40 · XC 90'],['C','D, M','CD 400 · CM 900']].map(([a,b,c])=>`<span><b>${a}</b><small>ลบจาก ${b}</small><small>${c}</small></span>`).join('')}</div>
    <p class="pm-warn">${I.alert}ห้ามเขียน IC แทน 99 ต้องเป็น XC + IX = <b>XCIX</b></p>`},
- {id:'r3',t:'จำนวนมาก (ขีดบน)',tp:'a2r',pg:5,b:`<p>ไม่นิยมซ้ำ 4 ตัว (XXXX เขียน XL) ส่วนจำนวนเกิน 3,999 ให้<b>ขีดบนตัวอักษร = คูณ 1,000</b></p>
+ {id:'r3',qz:['X̄ มีค่าเท่าไร',['10,000','1,000','100,000','100'],'X = 10 ขีดบนคูณ 1,000 จึงได้ 10,000'],t:'จำนวนมาก (ขีดบน)',tp:'a2r',pg:5,b:`<p>ไม่นิยมซ้ำ 4 ตัว (XXXX เขียน XL) ส่วนจำนวนเกิน 3,999 ให้<b>ขีดบนตัวอักษร = คูณ 1,000</b></p>
    <div class="pm-tb">${['V','X','L','C','D','M'].map((a,i)=>`<span><b>${romanHTML(a+'~')}</b><small>${['5,000','10,000','50,000','100,000','500,000','1,000,000'][i]}</small></span>`).join('')}</div>
    <p class="pm-ex">แยกก้อนหลักพันกับส่วนที่เหลือ: 7,240 = 7×1,000 + 240 → ${romanHTML('V~')}MM + CCXL = <b>${romanHTML('V~MMCCXL')}</b> (${romanHTML('I~')} = M)<br>2,530,000 = 2,530 × 1,000 → MMDXXX ขีดบนทั้งหมด = <b>${romanHTML('M~M~D~X~X~X~')}</b></p>
    <p class="pm-tip">${I.bulb}วิธีพิมพ์ขีดบนในแอพ: กดปุ่ม <b>¯</b> หลังตัวอักษร หรือพิมพ์ _ นำหน้า เช่น _VMMCCXL</p>`},
- {id:'r4',t:'คำนวณเลขโรมัน',tp:'rcalc',pg:7,b:`<p>แปลงเป็นเลขอารบิกก่อน แล้วค่อยคำนวณ (ตอบเป็นอารบิกหรือโรมันก็ได้)</p>
+ {id:'r4',qz:['XX × V เท่ากับเท่าไร',['100','25','105','200'],'แปลงก่อน 20 × 5 = 100 หรือ C'],t:'คำนวณเลขโรมัน',tp:'rcalc',pg:7,b:`<p>แปลงเป็นเลขอารบิกก่อน แล้วค่อยคำนวณ (ตอบเป็นอารบิกหรือโรมันก็ได้)</p>
    <p class="pm-ex">LXVII + CLXVI = 67 + 166 = <b>233</b> · MC × VIII = 1,100 × 8 = <b>8,800</b> · CM ÷ IX = 900 ÷ 9 = <b>100</b></p>`},
- {id:'s1',t:'นับเลขนัยสำคัญ',tp:'sfcount',pg:8,b:`<ol class="pm-rules"><li><b>เลข 1 ถึง 9</b> นับเสมอ <small>1.212 → 4 ตัว</small></li><li><b>0 ระหว่างเลข</b> นับ <small>2002 → 4 · 200.01 → 5</small></li><li><b>0 ท้าย หลังจุดทศนิยม</b> นับ <small>12.50 → 4 · 0.1200 → 4</small></li><li><b>0 นำหน้าเลขตัวแรก</b> ไม่นับ <small>0.0023 → 2 · 0.00004 → 1</small></li><li><b>0 ท้ายจำนวนเต็ม</b> ไม่ชัด ตอบเป็นช่วง <small>2500 → 2-4 ตัว</small></li></ol>
+ {id:'s1',qz:['0.0230 มีเลขนัยสำคัญกี่ตัว',['3 ตัว','4 ตัว','5 ตัว','2 ตัว'],'0 นำหน้าไม่นับ เหลือ 2 3 0 โดย 0 ท้ายหลังจุดนับ = 3 ตัว'],t:'นับเลขนัยสำคัญ',tp:'sfcount',pg:8,b:`<ol class="pm-rules"><li><b>เลข 1 ถึง 9</b> นับเสมอ <small>1.212 → 4 ตัว</small></li><li><b>0 ระหว่างเลข</b> นับ <small>2002 → 4 · 200.01 → 5</small></li><li><b>0 ท้าย หลังจุดทศนิยม</b> นับ <small>12.50 → 4 · 0.1200 → 4</small></li><li><b>0 นำหน้าเลขตัวแรก</b> ไม่นับ <small>0.0023 → 2 · 0.00004 → 1</small></li><li><b>0 ท้ายจำนวนเต็ม</b> ไม่ชัด ตอบเป็นช่วง <small>2500 → 2-4 ตัว</small></li></ol>
    <p class="pm-tip">${I.bulb}นับเร็ว: เริ่มที่เลขไม่ใช่ 0 ตัวแรกทางซ้าย นับไปจนสุดทางขวา ถ้าเป็น a × 10ⁿ นับเฉพาะ a เช่น 2566 × 10⁻⁴ → 4 ตัว</p>`},
- {id:'s2',t:'บันทึกค่าจากการวัด',tp:'record',pg:10,b:`<div class="pm-fig">${cylSVG(10,34)}<div><p>อ่านถึง<b>ขีดที่ละเอียดที่สุด</b> แล้ว<b>ประมาณเพิ่มอีก 1 หลัก</b> ตัวสุดท้ายคือตัวที่ไม่แน่นอน</p>
+ {id:'s2',qz:['กระบอกตวงขีดละ 1 mL ระดับอยู่กึ่งกลางระหว่าง 21 กับ 22 ควรบันทึกว่า',['21.5 mL','21 mL','22 mL','21.50 mL'],'อ่านได้ถึงหลักหน่วย 21 แล้วกะประมาณเพิ่ม 1 หลัก = 21.5 mL'],t:'บันทึกค่าจากการวัด',tp:'record',pg:10,b:`<div class="pm-fig">${cylSVG(10,34)}<div><p>อ่านถึง<b>ขีดที่ละเอียดที่สุด</b> แล้ว<b>ประมาณเพิ่มอีก 1 หลัก</b> ตัวสุดท้ายคือตัวที่ไม่แน่นอน</p>
    <p class="pm-ex">ขีดละ 10 mL ระดับเลยขีด 30 ไปประมาณ 4 → รายงาน <b>34 mL</b> (2 ตัว)<br>ขีดละ 1 mL ระดับอยู่ระหว่าง 34 กับ 35 → <b>34.5 mL</b> (3 ตัว)</p></div></div>
    <p class="pm-ex">ตวง 5 mL ด้วยขีดต่ำสุด 0.1 mL → <b>5.00 mL</b> · เครื่องชั่ง 0.001 g ชั่ง 60 mg → <b>0.0600 g</b> (ไม่ใช่ 0.06000)</p>`},
- {id:'s3',t:'การปัดเลขตัวสุดท้าย',tp:'round',pg:11,b:`<p>ดู<b>ตัวเลขที่พิจารณา</b> = ตัวแรกที่จะถูกตัดทิ้ง</p>
+ {id:'s3',qz:['4.65 ต้องการเลขนัยสำคัญ 2 ตัว',['4.6','4.7','4.65','5'],'ตัวที่พิจารณาคือ 5 พอดี เลขหน้าคือ 6 เป็นคู่ จึงตัดทิ้ง ได้ 4.6'],t:'การปัดเลขตัวสุดท้าย',tp:'round',pg:11,b:`<p>ดู<b>ตัวเลขที่พิจารณา</b> = ตัวแรกที่จะถูกตัดทิ้ง</p>
    <div class="pm-rt">${[['มากกว่า 5','ปัดขึ้น','2.46 → 2.5'],['น้อยกว่า 5','ปัดลง','2.43 → 2.4'],['5 พอดี เลขหน้าคู่หรือ 0','ตัดทิ้ง','2.85 → 2.8'],['5 พอดี เลขหน้าคี่','ปัดขึ้น','3.975 → 3.98'],['5 แล้วมีเลขไม่ใช่ 0 ตาม','ปัดขึ้นเสมอ','0.2352 → 0.24'],['5 แล้วตามด้วย 0','เหมือนไม่มีเลขตาม','0.8250 → 0.82']].map(([a,b,c])=>`<div><span>${a}</span><b>${b}</b><small class="num">${c}</small></div>`).join('')}</div>
    <p class="pm-tip">${I.bulb}กรณี 5 พอดี ให้ผลลงท้ายด้วยเลขคู่เสมอ</p>`},
- {id:'s4',t:'คำนวณตามหลักเลขนัยสำคัญ',tp:'sfcalc',pg:14,b:`<div class="pm-two"><div><h4>บวก ลบ</h4><p>ผลลัพธ์มี<b>ตำแหน่งทศนิยม</b>เท่ากับตัวที่น้อยที่สุด</p><p class="pm-ex">51.43 + 2.0 = 53.43 → <b>53.4</b></p></div>
+ {id:'s4',qz:['1.25 + 3.1 ควรตอบอย่างไร',['4.4','4.35','4.3','4'],'ได้ 4.35 ต้องเหลือทศนิยม 1 ตำแหน่งตาม 3.1 ตัวที่พิจารณาคือ 5 พอดี เลขหน้า 3 เป็นคี่ ปัดขึ้นเป็น 4.4'],t:'คำนวณตามหลักเลขนัยสำคัญ',tp:'sfcalc',pg:14,b:`<div class="pm-two"><div><h4>บวก ลบ</h4><p>ผลลัพธ์มี<b>ตำแหน่งทศนิยม</b>เท่ากับตัวที่น้อยที่สุด</p><p class="pm-ex">51.43 + 2.0 = 53.43 → <b>53.4</b></p></div>
    <div><h4>คูณ หาร</h4><p>ผลลัพธ์มี<b>จำนวนเลขนัยสำคัญ</b>เท่ากับตัวที่น้อยที่สุด</p><p class="pm-ex">23.2 × 35.45 = 822.44 → <b>822</b></p></div></div>
    <p class="pm-warn">${I.alert}432.10 × 5.5 = 2,376.55 ต้องการ 2 ตัว ห้ามตอบ 24 ให้ตอบ <b>2.4 × 10³</b> (หรือ 2,400) · ปัดตอนท้ายครั้งเดียว</p>`},
  {id:'h1',t:'วิธีพิมพ์คำตอบในแอพ',tp:null,pg:null,b:`<ul class="pm-how"><li>ตัวพิมพ์เล็กหรือใหญ่ เว้นวรรคหรือพิมพ์ชิด ได้หมด ขอแค่ตัวอักษรครบและเรียงถูก</li><li>เลขโรมันขีดบน: ปุ่ม <b>¯</b> หลังตัวอักษร หรือ _ นำหน้า</li><li>ยกกำลังสิบ: <b>2.4x10^3</b> หรือ 2.4e3 หรือกดปุ่ม ×10^</li><li>ตอบเป็นช่วง: <b>2-4</b> หรือ 2 ถึง 4</li><li>ใส่หรือไม่ใส่หน่วยก็ได้ แต่เลข 0 ท้ายทศนิยมต้องครบ (5.00 ไม่เท่ากับ 5)</li></ul>`}
 ];
-function primeHTML(){
+const PRIME_L=PRIME.filter(x=>x.tp);
+const pmRead=()=>{ const R=ST.pm||{}; return PRIME_L.filter(x=>R[x.id]).length; };
+const PM_GRP={r:['เลขโรมัน','rom'],s:['เลขนัยสำคัญ','sig'],h:['ใช้งานแอพ','how']};
+function primeHTML(){ const R=ST.pm||{}, n=pmRead(), N=PRIME_L.length;
   return head()+`<div class="wrap"><button class="crumb rp" data-tab="quiz">${I.back} ข้อสอบ</button>
-   <div class="ptitle"><div><h1>ปูพื้นฐานก่อนสอบ</h1><p>สรุปกฎทุกเรื่องของบทที่ 1 อ่านจบแล้วกดฝึกเรื่องนั้นได้ทันที</p></div></div>
-   <nav class="pm-nav">${PRIME.map((s,i)=>`<a href="#pm-${s.id}" class="fchip rp" data-soft="1" data-pmj="${s.id}"><b class="num">${i+1}</b>${s.t}</a>`).join('')}</nav>
-   ${PRIME.map((s,i)=>`<section class="pm panel" id="pm-${s.id}"><header><span class="pm-no num">${i+1}</span><h2>${s.t}</h2></header><div class="pm-b">${s.b}</div>
-    ${s.tp?`<footer><button class="btn sm rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้</button><button class="btn ghost sm rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button></footer>`:''}</section>`).join('')}
-   <div class="cta-row"><button class="btn lg rp wide" data-qset="sh:1">${I.play}พร้อมแล้ว เริ่มชุดแนวชีท ชุดที่ 1</button></div></div>`;
+   <section class="pmhero"><div class="pmhero-b"><span class="pban-k">${I.bulb}บทที่ 1 · เลขโรมัน และเลขนัยสำคัญ</span><h1>ปูพื้นฐาน<br>ก่อนสอบ</h1>
+     <p>อ่านทีละบท ลองตอบโจทย์ท้ายบท แล้วกดฝึกเรื่องนั้นได้ทันที</p>
+     <div class="pmstat"><span><b class="num">${N}</b><small>บทเรียน</small></span><span><b class="num">${N}</b><small>ลองคิด</small></span><span><b class="num">~10</b><small>นาที</small></span></div>
+     <div class="pban-p"><span class="pban-bar"><i style="width:${Math.round(n/N*100)}%"></i></span><small class="num">อ่านแล้ว ${n}/${N}</small></div></div>
+    <div class="pmhero-m">${beetleCar({mood:n>=N?'wink':'happy'})}</div></section>
+   <nav class="pm-nav" aria-label="สารบัญ">${PRIME.map((s,i)=>`<a href="#pm-${s.id}" class="pmj rp ${PM_GRP[s.id[0]][1]} ${R[s.id]?'done':''}" data-soft="1" data-pmj="${s.id}"><b class="num">${R[s.id]?I.check:i+1}</b>${s.t}</a>`).join('')}</nav>
+   ${PRIME.map((s,i)=>{const g=PM_GRP[s.id[0]];return `<section class="pm ${g[1]} ${R[s.id]?'done':''}" id="pm-${s.id}">
+    <header><span class="pm-no num">${i+1}</span><div><small>${s.tp?'บทเรียนที่ '+(i+1)+' · ':''}${g[0]}</small><h2>${s.t}</h2></div>${R[s.id]?`<span class="pm-ok">${I.check}อ่านแล้ว</span>`:''}</header>
+    <div class="pm-b">${s.b}</div>
+    ${s.qz?`<div class="pm-try" data-pmq="${s.id}"><div class="pm-try-h">${I.spark}<b>ลองคิดก่อน</b><small>แตะคำตอบที่คิดว่าถูก</small></div><p class="pm-try-q">${esc(s.qz[0])}</p>
+      <div class="pm-opts">${shuf(s.qz[1].map((o,j)=>[o,j])).map(([o,j])=>`<button class="pm-op rp" data-pmo="${j}">${esc(o)}</button>`).join('')}</div><div class="pm-fb" aria-live="polite"></div></div>`:''}
+    ${s.tp?`<footer><button class="btn rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้</button><button class="btn ghost rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button><button class="btn ghost rp pm-mark" data-pmr="${s.id}" aria-pressed="${!!R[s.id]}">${I.check}${R[s.id]?'อ่านแล้ว':'อ่านจบแล้ว'}</button></footer>`:''}</section>`;}).join('')}
+   <section class="pm-end"><div class="pm-end-m">${beetleCar({mood:'wink'})}</div><div><h2>พร้อมลุยแล้ว</h2><p>เริ่มจากชุดแนวชีท หรือทดสอบทฤษฎีก่อนก็ได้</p>
+    <div class="cta-row two"><button class="btn lg rp" data-qset="sh:1">${I.play}ชุดแนวชีท ชุดที่ 1</button><button class="btn ghost lg rp" data-qset="th:all">${I.quiz}ข้อช้อยทฤษฎี</button></div></div></section></div>`;
 }
 function primeBind(){
+  const mark=(id,on)=>{ ST.pm=ST.pm||{}; if(on) ST.pm[id]=1; else delete ST.pm[id]; save(); };
+  const rr=()=>{const y=scrollY;render();scrollTo(0,y);};
   $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone]}));
   $$('[data-qset]').forEach(b=>b.onclick=()=>startQuiz(b.dataset.qset));
   $$('[data-qpgz]').forEach(b=>b.onclick=()=>bookZoom(+b.dataset.qpgz));
+  $$('[data-pmr]').forEach(b=>b.onclick=()=>{ const id=b.dataset.pmr; mark(id,!(ST.pm||{})[id]); rr(); });
+  $$('[data-pmq]').forEach(box=>{ const s=PRIME.find(x=>x.id===box.dataset.pmq);
+    box.querySelectorAll('[data-pmo]').forEach(b=>b.onclick=()=>{ if(box.classList.contains('ans')) return; const ok=b.dataset.pmo==='0';
+      box.classList.add('ans',ok?'ok':'bad'); box.querySelectorAll('[data-pmo]').forEach(x=>{ if(x.dataset.pmo==='0') x.classList.add('right'); }); if(!ok) b.classList.add('wrong');
+      box.querySelector('.pm-fb').innerHTML=`<b>${ok?'ถูกต้อง เก่งมาก':'ยังไม่ถูก คำตอบคือ '+esc(s.qz[1][0])}</b><span>${esc(s.qz[2])}</span>`;
+      ok?SFX.ok():SFX.bad();
+      if(ok&&!(ST.pm||{})[s.id]){ mark(s.id,true); const sec=$('#pm-'+s.id); sec.classList.add('done'); const j=$(`[data-pmj="${s.id}"]`); if(j){ j.classList.add('done'); j.querySelector('b').innerHTML=I.check; } const m=sec.querySelector('[data-pmr]'); if(m){ m.setAttribute('aria-pressed','true'); m.innerHTML=I.check+'อ่านแล้ว'; } }
+    }); });
   $$('[data-pmj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const t=$('#pm-'+a.dataset.pmj); if(t) scrollTo({top:t.getBoundingClientRect().top+scrollY-70,behavior:LITE?'auto':'smooth'}); });
 }
 
