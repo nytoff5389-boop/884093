@@ -953,13 +953,11 @@ function quizHTML(){
     <h4 class="mini">เรื่อง <button class="link sm rp" data-qall="1">${Z.tps.length===Object.keys(QT).length?'เอาออกทั้งหมด':'เลือกทั้งหมด'}</button></h4>
     <div class="fchips">${Object.entries(QT).map(([k,t])=>`<button class="fchip rp ${Z.tps.includes(k)?'on':''}" data-qtp="${k}" data-soft="1" aria-pressed="${Z.tps.includes(k)}">${Z.tps.includes(k)?I.check:''}${t.n}${k==='concept'?' <i class="mc-tag">ช้อยส์</i>':''}</button>`).join('')}</div>
     <button class="btn lg rp wide" data-qset="gen" ${Z.tps.length?'':'disabled'}>${I.dice}เริ่มสุ่มโจทย์</button></section>
-   <section class="zcard"><h3 class="zc-t">${I.list||I.book}ฝึกทีละเรื่อง</h3><p class="zc-d">แตะเรื่องที่อยากฝึก</p>
-    <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div></section>
 
-   ${zone(4,'ข้อสอบทั้งหมด','ข้อสอบเป็นชุด แยกตามบท ทำจบแล้วดูคะแนนและเฉลย',I.quiz,'z1')}
-   <section class="xcard bank"><header><span class="sc-ic">${I.book}</span><div><h3>บทที่ 1</h3><p>เลขโรมัน และเลขนัยสำคัญ</p></div></header>
-    ${bankRow('sh','แนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีท ข้อ 1 ถึง 4.4')}
-    ${bankRow('sl','แนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์')}</section>
+
+   ${zone(4,'ข้อสอบตามหัวข้อ','เลือกหัวข้อแล้วเริ่มทำได้เลย',I.quiz,'z1')}
+   <section class="zcard"><h3 class="zc-t">${I.book}บทที่ 1 · เลขโรมัน และเลขนัยสำคัญ</h3><p class="zc-d">แตะหัวข้อที่อยากทำ ทำได้ไม่จำกัดข้อ</p>
+    <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div></section>
    ${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="xrow soon rp" data-soon="${c.id}"><span class="sc-ic">${I.lock}</span><span><b>บทที่ ${c.id}</b><small>${esc(c.name||'')}</small></span><i class="mc-tag">soon</i></button>`).join('')}</div>`;
 }
 function primeBanner(){ const n=pmRead(), N=PRIME_L.length;
