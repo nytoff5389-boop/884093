@@ -1150,8 +1150,8 @@ function primeHTML(){ const R=ST.pm||{}, n=pmRead(), N=PRIME_L.length;
     ${s.qz?`<div class="pm-try" data-pmq="${s.id}"><div class="pm-try-h">${I.spark}<b>ลองคิดก่อน</b><small>แตะคำตอบที่คิดว่าถูก</small></div><p class="pm-try-q">${esc(s.qz[0])}</p>
       <div class="pm-opts">${shuf(s.qz[1].map((o,j)=>[o,j])).map(([o,j])=>`<button class="pm-op rp" data-pmo="${j}">${esc(o)}</button>`).join('')}</div><div class="pm-fb" aria-live="polite"></div></div>`:''}
     ${s.tp?`<footer><button class="btn rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้</button><button class="btn ghost rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button><button class="btn ghost rp pm-mark" data-pmr="${s.id}" aria-pressed="${!!R[s.id]}">${I.check}${R[s.id]?'อ่านแล้ว':'อ่านจบแล้ว'}</button></footer>`:''}</section>`;}).join('')}
-   <section class="pm-end"><div class="pm-end-m">${beetleCar({mood:'wink'})}</div><div><h2>พร้อมลุยแล้ว</h2><p>เริ่มจากชุดแนวชีท หรือทดสอบทฤษฎีก่อนก็ได้</p>
-    <div class="cta-row two"><button class="btn lg rp" data-qset="sh:1">${I.play}ชุดแนวชีท ชุดที่ 1</button><button class="btn ghost lg rp" data-qset="th:all">${I.quiz}ข้อช้อยทฤษฎี</button></div></div></section></div>`;
+   <section class="pm-end"><div class="pm-end-m">${beetleCar({mood:'wink'})}</div><div><h2>พร้อมลุยแล้ว</h2><p>เริ่มจากข้อสอบทฤษฎี หรือเลือกทำตามหัวข้อก็ได้</p>
+    <div class="cta-row two"><button class="btn lg rp" data-qset="th:all">${I.play}เริ่มข้อสอบทฤษฎี</button><button class="btn ghost lg rp" data-tab="quiz">${I.quiz}ไปหน้าข้อสอบ</button></div></div></section></div>`;
 }
 function primeBind(){
   const mark=(id,on)=>{ ST.pm=ST.pm||{}; if(on) ST.pm[id]=1; else delete ST.pm[id]; save(); };
