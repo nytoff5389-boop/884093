@@ -208,7 +208,7 @@ let bookIO=null, bookSaveT=0;
 function bookHTML(){
   const n=BOOK.n, cur=Math.min(n,Math.max(1,ST.bookPage||1)), c1=chOf(1);
   return head()+`<div class="wrap"><div class="ptitle"><div><h1>อ่านหนังสือ</h1><p>${esc(BOOK.title)} · แตะหน้าเพื่อขยาย ซูมได้</p></div>
-     <a class="btn ghost rp" href="${c1.pdf.f}" download>${I.dl}PDF บทที่ 1</a></div>
+     <button class="btn ghost rp" data-dl="1">${I.dl}ดาวน์โหลด PDF</button></div>
    <details class="toc panel" ${UI.tocOpen?'open':''}><summary class="rp" data-soft="1">${I.layers}<b>สารบัญบทที่ 1</b>${I.down}</summary><div class="toc-l">${c1.toc.map(t=>`<button class="toc-r rp ${t.s?'sub':''}" data-pg="${t.p}" data-soft="1"><span>${esc(t.n)}</span><b class="num">${t.p}</b></button>`).join('')}</div></details></div>
    <div class="bk-top"><div class="wrap bk-bar"><div class="bk-chs" aria-label="เลือกบท">${CHAPTERS.map(c=>c.ready?`<button class="bk-ch rp on" data-bkch="${c.p}" data-soft="1">${I.book}บทที่ ${c.id}</button>`:`<button class="bk-ch soon rp" data-soon="${c.id}" data-soft="1">บทที่ ${c.id}<i>soon</i></button>`).join('')}</div><span class="bk-cnt num" id="bk-cnt">หน้า <b>${cur}</b>/${n}</span></div></div>
    <div class="wrap"><div class="bk-pages" id="bk-pages">${Array.from({length:n},(_,i)=>`<figure class="bk-pg" id="pg-${i+1}" data-p="${i+1}"><button class="bk-img rp" data-zoom="${i+1}" data-silent="1" aria-label="ขยายหน้า ${i+1}"><img alt="หน้า ${i+1}" decoding="async" width="1100" height="1557"></button><figcaption class="num">หน้า ${i+1} · บทที่ 1</figcaption></figure>`).join('')}</div>
@@ -261,6 +261,74 @@ function bookZoom(p){
   addEventListener('keydown',kh,true); show();
 }
 
+
+/* ===================== ดาวน์โหลด PDF: โหลดไฟล์มาก่อน แล้วบันทึกด้วยวิธีที่เครื่องนั้นรองรับ ===================== */
+const DL={blob:null,busy:false};
+const UA=navigator.userAgent||'';
+const IS_IOS=/iPad|iPhone|iPod/.test(UA)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const IN_APP=/Line\/|FBAN|FBAV|FB_IAB|Instagram|TikTok|musical_ly|BytedanceWebview|Twitter|Messenger|MicroMessenger|KAKAOTALK/i.test(UA);
+const PDF_NAME='JinoonCalc-Chapter1-PharmCalc.pdf';
+const pdfURL=()=>new URL(chOf(1).pdf.f,location.href).href;
+function dlFetch(onp){
+  if(DL.blob) return Promise.resolve(DL.blob);
+  return fetch(pdfURL(),{cache:'force-cache'}).then(async r=>{
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const tot=+r.headers.get('content-length')||0;
+    if(!r.body||!tot){ const b=await r.blob(); onp&&onp(100); return b; }
+    const rd=r.body.getReader(), parts=[]; let got=0;
+    for(;;){ const {done,value}=await rd.read(); if(done) break; parts.push(value); got+=value.length; onp&&onp(Math.min(99,Math.round(got/tot*100))); }
+    onp&&onp(100); return new Blob(parts,{type:'application/pdf'});
+  }).then(b=>{ DL.blob=b.type==='application/pdf'?b:new Blob([b],{type:'application/pdf'}); return DL.blob; });
+}
+function dlSave(){
+  const b=DL.blob; if(!b) return;
+  const file=(()=>{ try{ return new File([b],PDF_NAME,{type:'application/pdf'}); }catch(e){ return null; } })();
+  /* iPhone/iPad: ใช้หน้าแชร์ของระบบ แล้วเลือก "บันทึกไปยังไฟล์" */
+  if(IS_IOS&&file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    navigator.share({files:[file],title:'สรุปการคำนวณเภสัช บทที่ 1'}).then(()=>{toast('บันทึกเรียบร้อย');dlClose();}).catch(e=>{ if(e&&e.name==='AbortError') return; dlOpen(); });
+    return;
+  }
+  try{
+    const u=URL.createObjectURL(b), a=document.createElement('a'); a.href=u; a.download=PDF_NAME; a.rel='noopener'; a.style.display='none';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),60000);
+    toast('เริ่มดาวน์โหลดแล้ว ดูได้ในโฟลเดอร์ดาวน์โหลด'); dlClose();
+  }catch(e){ dlOpen(); }
+}
+function dlOpen(){ const w=window.open(pdfURL(),'_blank','noopener'); if(!w) location.href=pdfURL(); }
+function dlCopy(){
+  const u=pdfURL(), ok=()=>toast('คัดลอกลิงก์แล้ว นำไปวางใน Safari หรือ Chrome');
+  if(navigator.clipboard&&navigator.clipboard.writeText) navigator.clipboard.writeText(u).then(ok,()=>prompt('คัดลอกลิงก์นี้',u));
+  else prompt('คัดลอกลิงก์นี้',u);
+}
+function dlClose(){ const L=$('#layer'); if(L) L.innerHTML=''; document.body.style.overflow=''; }
+function openDL(){
+  const c=chOf(1), L=$('#layer');
+  L.innerHTML=`<div class="scrim center" id="dl"><div class="dlg dl" role="dialog" aria-modal="true" aria-labelledby="dlt">
+    <button class="ib2 rp dl-x" id="dl-x" aria-label="ปิด">${I.x}</button>
+    <div class="dl-ic">${I.dl}</div>
+    <h3 id="dlt">ดาวน์โหลด PDF บทที่ 1</h3>
+    <p class="dl-sub num">${esc(c.name)} · ${c.n} หน้า · ${c.pdf.mb} MB</p>
+    ${IN_APP?`<div class="dl-warn">${I.alert}<span>ตอนนี้เปิดเว็บอยู่ในแอพอื่น (เช่น LINE, TikTok, IG) ซึ่งมักโหลดไฟล์ไม่ได้ ให้กดเมนู <b>…</b> แล้วเลือก <b>เปิดใน Safari / Chrome</b> หรือคัดลอกลิงก์ไปเปิดเอง</span></div>`:''}
+    <div class="dl-bar" id="dl-bar"><i style="width:0%"></i></div>
+    <p class="dl-st num" id="dl-st">กำลังเตรียมไฟล์ 0%</p>
+    <div class="dl-btns">
+     <button class="btn lg rp wide" id="dl-save" disabled>${I.dl}${IS_IOS?'บันทึกลงไฟล์':'บันทึกลงเครื่อง'}</button>
+     <button class="btn ghost rp wide" id="dl-open">${I.book}เปิดดู PDF ในแท็บใหม่</button>
+     ${IN_APP?`<button class="btn ghost rp wide" id="dl-copy">${I.layers}คัดลอกลิงก์ PDF</button>`:''}
+    </div>
+    ${IS_IOS?`<p class="dl-tip">บน iPhone จะขึ้นหน้าแชร์ ให้เลือก <b>บันทึกไปยังไฟล์</b> (Save to Files)</p>`:''}
+   </div></div>`;
+  document.body.style.overflow='hidden';
+  $('#dl-x').onclick=dlClose; $('#dl').onclick=e=>{ if(e.target.id==='dl') dlClose(); };
+  $('#dl-open').onclick=dlOpen; if($('#dl-copy')) $('#dl-copy').onclick=dlCopy;
+  $('#dl-save').onclick=dlSave;
+  const bar=$('#dl-bar i'), st=$('#dl-st'), sv=$('#dl-save');
+  const prog=p=>{ if(!bar.isConnected) return; bar.style.width=p+'%'; st.textContent=p>=100?'ไฟล์พร้อมแล้ว':'กำลังเตรียมไฟล์ '+p+'%'; };
+  if(DL.blob){ prog(100); sv.disabled=false; return; }
+  if(DL.busy) return; DL.busy=true;
+  dlFetch(prog).then(()=>{ DL.busy=false; if(!sv.isConnected) return; prog(100); sv.disabled=false; sv.focus(); SFX.ok(); })
+   .catch(()=>{ DL.busy=false; if(!st.isConnected) return; st.textContent='โหลดไฟล์ไม่สำเร็จ ลองกด "เปิดดู PDF" แทน หรือเช็กอินเทอร์เน็ต'; st.classList.add('err'); sv.disabled=false; sv.onclick=()=>{ dlClose(); openDL(); }; sv.innerHTML=I.reset+'ลองใหม่'; });
+}
 
 /* ===================== เวลาใช้งาน: นับเฉพาะตอนเปิดหน้าเว็บอยู่ ===================== */
 const AWAY_LIMIT=5*60*1000; // ออกจากเว็บเกิน 5 นาที = จบการใช้งานรอบนั้น
@@ -438,6 +506,7 @@ function homeHTML(){
    <div class="tools">
     <button class="tool rp" data-tab="quiz"><span class="tool-ic">${I.quiz}</span><span><b>ข้อสอบ</b><small>ยังไม่พร้อมใช้งาน</small></span>${I.chev}</button>
     <button class="tool rp" data-read="1"><span class="tool-ic">${I.book}</span><span><b>อ่านหนังสือ</b><small>บทที่ 1 · ${BOOK.n} หน้า ซูมได้</small></span>${I.chev}</button>
+    <button class="tool rp" data-dl="1"><span class="tool-ic">${I.dl}</span><span><b>ดาวน์โหลด PDF บทที่ 1</b><small>บันทึกเก็บไว้อ่านแบบออฟไลน์</small></span>${I.chev}</button>
     <button class="tool rp" data-act="timer"><span class="tool-ic">${I.timer}</span><span><b>ตั้งเวลาอ่านหนังสือ</b><small>นับถอยหลัง และเตือนพักสายตาทุก ${ST.rest.min} นาที</small></span>${I.chev}</button>
    </div></div>`;
 }
@@ -497,6 +566,7 @@ function bind(){
   $$('[data-read]').forEach(b=>b.onclick=()=>{ const id=+b.dataset.read; const c=chOf(id); if(!c||!c.ready) return soon(id); UI.bookJump=Math.max(1,ST.bookPage||1); go('book'); });
   $$('[data-soon]').forEach(b=>b.onclick=()=>soon(+b.dataset.soon));
   $$('[data-na]').forEach(b=>b.onclick=notReady);
+  $$('[data-dl]').forEach(b=>b.onclick=openDL);
   $$('[data-act]').forEach(b=>b.onclick=()=>ACT[b.dataset.act]&&ACT[b.dataset.act](b));
 }
 const ACT={

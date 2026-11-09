@@ -649,3 +649,19 @@ svg{width:20px;height:20px;flex:none}
 .st-k{background:#0E6B3E}
 .lite .st-road::after{animation:none}
 @media (max-height:640px){.st-stage{width:min(260px,40vh)}}
+/* ดาวน์โหลด PDF */
+.dl{position:relative;display:flex;flex-direction:column;align-items:center;gap:6px}
+.dl-x{position:absolute;right:12px;top:12px;width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:var(--ink-2);background:var(--surface-2)}
+.dl-ic{width:58px;height:58px;border-radius:18px;background:var(--leaf-s);color:var(--leaf);display:grid;place-items:center;margin-bottom:4px}
+.dl-ic svg{width:30px;height:30px}
+.dl-sub{font-size:13px!important;color:var(--muted)!important}
+.dl-warn{display:flex;gap:8px;text-align:left;background:var(--lv-mid-s);color:var(--ink);border-radius:12px;padding:10px 12px;font-size:13.5px;line-height:1.5;margin-top:6px}
+.dl-warn svg{color:var(--lv-mid);margin-top:2px}
+.dl-bar{width:100%;height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:10px}
+.dl-bar i{display:block;height:100%;background:var(--leaf);border-radius:4px;transition:width .2s}
+.dl-st{font-size:13px!important;color:var(--muted)!important}
+.dl-st.err{color:var(--bad)!important}
+.dl-btns{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:8px}
+.dl-btns .btn:disabled{opacity:.5}
+.dl-tip{font-size:12.5px!important;color:var(--muted)!important;margin-top:4px}
+
