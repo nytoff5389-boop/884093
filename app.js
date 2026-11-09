@@ -864,7 +864,7 @@ function cylSVG(step,v){
 
 /* ---------- หน้าเลือกโหมด ---------- */
 function quizHTML(){
-  const Z=ST.qz, acc=Z.ans?Math.round(Z.ok/Z.ans*100):null, nS=setSheet().length, nL=setSlide().length;
+  const Z=ST.qz, acc=Z.ans?Math.round(Z.ok/Z.ans*100):null;
   const seg=(arr,cur,attr)=>`<div class="lvseg ${arr.length===3?'q3':''}" role="radiogroup">${arr.map(([id,n,d])=>`<button class="ls rp ${cur===id?'on':''}" role="radio" aria-checked="${cur===id}" ${attr}="${id}" data-soft="1"><b>${n}</b><small>${d}</small></button>`).join('')}</div>`;
   return pageHead('ข้อสอบบทที่ 1','เลขโรมัน และเลขนัยสำคัญ · พิมพ์ตอบและช้อยส์ · ทุกข้อมีเฉลยพร้อมหลักการคิด')+`
    <section class="qhero"><div class="qhero-msc">${beetleCar({mood:'happy'})}</div>
@@ -872,24 +872,19 @@ function quizHTML(){
      <button class="prime-cta rp" data-tab="prime"><span class="pc-ic">${I.bulb}</span><span><b>ปูพื้นฐานก่อนสอบ</b><small>สรุปกฎทุกเรื่องพร้อมตัวอย่าง อ่าน 5 นาทีก่อนลุย</small></span>${I.chev}</button></div></section>
    <div class="sec"><div><h2>รูปแบบการตอบ</h2><p>พิมพ์ตอบ: ตัวพิมพ์เล็กใหญ่ เว้นวรรคหรือไม่ก็ได้ ขอแค่ตัวอักษรครบและเรียงถูก</p></div></div>
    ${seg(QSTYLE,Z.style,'data-qstyle')}
-   <div class="sec"><div><h2>ชุดข้อสอบ</h2></div></div>
-   <div class="qmodes">
-    <button class="qmode rp" data-qset="sheet"><span class="qm-ic">${I.quiz}</span><span><b>แบบฝึกหัดในชีท</b><small class="num">${nS} ข้อ ตามลำดับในชีท ข้อ 1 ถึง 4.4</small></span>${I.play}</button>
-    <button class="qmode rp" data-qset="slide"><span class="qm-ic">${I.book}</span><span><b>ตัวอย่างในสไลด์</b><small class="num">${nL} ข้อ จากตัวอย่างและเฉลยสีแดง</small></span>${I.play}</button>
-    ${Z.wrong.length?`<button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button>`:''}
-   </div>
+   ${Z.wrong.length?`<div class="qmodes">
+    <button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button></div>`:''}
    ${setGrid('sh','ชุดแนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีท ข้อ 1 ถึง 4.4 ตัวเลขใหม่ทุกชุด')}
    ${setGrid('sl','ชุดแนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์ มีข้อหลักการด้วย')}
-   <div class="sec"><div><h2>สุ่มโจทย์แนวเดียวกัน</h2><p>ตัวเลขใหม่ทุกครั้ง ไม่รู้จบ</p></div></div>
+   <div class="sec"><div><h2>สุ่มโจทย์แนวเดียวกัน</h2><p>ตัวเลขใหม่ทุกครั้ง ไม่จำกัดจำนวนข้อ</p></div></div>
    <div class="panel qgen">
     <h3 class="mini">ระดับ</h3>${seg(QLV,Z.diff,'data-qdiff')}
     <h3 class="mini">เรื่อง <button class="link sm rp" data-qall="1">${Z.tps.length===Object.keys(QT).length?'เอาออกทั้งหมด':'เลือกทั้งหมด'}</button></h3>
     <div class="fchips">${Object.entries(QT).map(([k,t])=>`<button class="fchip rp ${Z.tps.includes(k)?'on':''}" data-qtp="${k}" data-soft="1" aria-pressed="${Z.tps.includes(k)}">${Z.tps.includes(k)?I.check:''}${t.n}${k==='concept'?' <i class="mc-tag">ช้อยส์</i>':''}</button>`).join('')}</div>
-    <h3 class="mini">จำนวนข้อ</h3>
-    <div class="fchips">${[10,20,30].map(n=>`<button class="fchip rp ${Z.n===n?'on':''}" data-qn="${n}" data-soft="1"><b class="num">${n}</b> ข้อ</button>`).join('')}</div>
+    <p class="qhint">${I.bulb}ไม่จำกัดจำนวนข้อ ทำไปเรื่อยๆ อยากหยุดตอนไหนกด "หยุดและดูสรุป" ได้เลย</p>
     <button class="btn lg rp wide" data-qset="gen" ${Z.tps.length?'':'disabled'}>${I.dice}เริ่มสุ่มโจทย์</button>
    </div>
-   <div class="sec"><div><h2>แยกตามเรื่อง</h2><p>แตะเพื่อฝึกเฉพาะเรื่องนั้น 10 ข้อ</p></div></div>
+   <div class="sec"><div><h2>แยกตามเรื่อง</h2><p>แตะเพื่อฝึกเฉพาะเรื่องนั้น ไม่จำกัดจำนวนข้อ</p></div></div>
    <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div>
    <div class="sec"><div><h2>บทอื่น</h2></div></div>
    <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
@@ -905,7 +900,7 @@ function quizBind(){
   $$('[data-qall]').forEach(b=>b.onclick=()=>{Z.tps=Z.tps.length===Object.keys(QT).length?[]:Object.keys(QT);save();rr();});
   $$('[data-qn]').forEach(b=>b.onclick=()=>{Z.n=+b.dataset.qn;save();rr();});
   $$('[data-qset]').forEach(b=>b.onclick=()=>startQuiz(b.dataset.qset));
-  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone],n:10}));
+  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone]}));
 }
 function genList(tps,n,diff){ const out=[],seen=new Set(); let guard=0;
   while(out.length<n&&guard++<n*30){ const t=tps[out.length%tps.length]; const lv=diff==='mix'?pick(['easy','mid','hard']):diff; const q=GEN[t](t==='concept'&&diff==='mix'?'mix':lv); if(seen.has(q.id)) continue; seen.add(q.id); out.push(q); }
@@ -916,13 +911,14 @@ function startQuiz(kind,o={}){
   else if(kind==='slide'){ list=setSlide(); title='ตัวอย่างในสไลด์'; }
   else if(/^(sh|sl):\d+$/.test(kind)){ const [k,n]=kind.split(':'); list=buildSet(k,+n); title=(k==='sh'?'แนวชีท':'แนวสไลด์')+' ชุดที่ '+n; }
   else if(kind==='wrong'){ list=shuf(Z.wrong.map(x=>Object.assign({},x))); title='ข้อที่เคยผิด'; }
-  else { const tps=o.tps||Z.tps; if(!tps.length) return toast('เลือกอย่างน้อย 1 เรื่อง'); list=genList(tps,o.n||Z.n,Z.diff); title=tps.length===1?QT[tps[0]].n:'สุ่มโจทย์ '+(Z.diff==='mix'?'ทุกระดับ':LVN[Z.diff]); }
+  else { const tps=o.tps||Z.tps; if(!tps.length) return toast('เลือกอย่างน้อย 1 เรื่อง'); list=genList(tps,5,Z.diff); o.endless={tps,diff:Z.diff}; title=tps.length===1?QT[tps[0]].n:'สุ่มโจทย์ '+(Z.diff==='mix'?'ทุกระดับ':LVN[Z.diff]); }
   /* กำหนดรูปแบบการตอบของแต่ละข้อ */
-  list.forEach((q,i)=>{ q.as=q.mcOnly?'mc':!q.mc?'type':Z.style==='mix'?(i%2?'mc':'type'):Z.style; });
-  QP={kind,title,list,i:0,ok:0,streak:0,res:[],done:false};
+  list.forEach((q,i)=>qAs(q,i));
+  QP={kind,title,list,i:0,ok:0,streak:0,res:[],done:false,endless:o.endless||null,tps:o.tps};
   openQuiz();
 }
 let QP=null;
+function qAs(q,i){ const Z=ST.qz; q.as=q.mcOnly?'mc':!q.mc?'type':Z.style==='mix'?(i%2?'mc':'type'):Z.style; }
 
 /* ---------- ผู้เล่น ---------- */
 function openQuiz(){ document.body.style.overflow='hidden'; const L=$('#layer'); L.innerHTML=`<div class="player qp" id="qp" role="dialog" aria-modal="true" aria-label="ทำข้อสอบ"></div>`; qRender(); }
@@ -933,12 +929,12 @@ function kp(kind){
 }
 function qRender(){
   const P=QP, q=P.list[P.i], el=$('#qp'); if(!el) return;
-  const pct=Math.round(P.i/P.list.length*100);
+  const pct=P.endless?Math.min(100,Math.round(P.res.length?P.ok/P.res.length*100:0)):Math.round(P.i/P.list.length*100);
   const multi=q.fields.length>1;
   const ans=q.as==='mc'?`<div class="qopts" role="radiogroup" aria-label="ตัวเลือก">${q.mc.opts.map((o,i)=>`<button class="qopt rp" data-op="${i}" role="radio" aria-checked="false"><span class="qk num">${'กขคง'[i]}</span><span class="qo-t">${q.plain?esc(o):showAns(o)}</span></button>`).join('')}</div>`
     :`<div class="qfields ${multi?'multi':''}">${q.fields.map((f,i)=>`<label class="qf"><span class="qf-l">${f.lab?esc(f.lab):'คำตอบ'}</span><span class="qf-in"><input id="qi${i}" class="qin ${f.kind==='roman'||f.kind==='rnum'?'rom':''}" autocomplete="off" autocapitalize="characters" spellcheck="false" inputmode="${f.kind==='roman'||f.kind==='rnum'?'text':'decimal'}" enterkeyhint="${i<q.fields.length-1?'next':'done'}" aria-label="${esc(f.lab||'คำตอบ')}">${f.unit?`<i>${f.unit}</i>`:''}</span></label>`).join('')}</div>
      ${kp(q.fields[0].kind)}${q.hint?`<p class="qhint">${I.bulb}${esc(q.hint)}</p>`:''}`;
-  el.innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ออก">${I.x}</button><div class="pline"><i style="width:${pct}%"></i></div><b class="num">${P.i+1}/${P.list.length}</b><span class="pst num">${I.check}${P.ok}</span></div></div>
+  el.innerHTML=`<div class="pbar"><div class="pbar-in"><button class="ib2 rp" id="qx" aria-label="ออก">${I.x}</button>${P.endless?`<b class="num qn-end">ข้อที่ ${P.i+1}</b><span class="top-sp"></span>${P.res.length?`<button class="btn ghost sm rp" id="qstop">หยุดและดูสรุป</button>`:''}`:`<div class="pline"><i style="width:${pct}%"></i></div><b class="num">${P.i+1}/${P.list.length}</b>`}<span class="pst num">${I.check}${P.ok}</span></div></div>
    <div class="pl-sc" id="qsc"><div class="stage"><article class="qcard">
     <div class="qmeta"><span class="qtopic">${QT[q.t].n}</span><span class="lv lv-${q.lv}">${LVN[q.lv]}</span>${q.src?`<span class="qsrc">${esc(q.src)}${q.no?' · '+esc(q.no):''}</span>`:''}<span class="qtype">${q.as==='mc'?'ช้อยส์':'พิมพ์ตอบ'}</span></div>
     <p class="stem">${esc(q.stem)}</p>${!q.fig&&(q.bigHTML||q.big)?`<div class="qbig">${q.bigHTML||esc(q.big)}</div>`:''}${fig(q)?`<div class="qfig">${fig(q)}</div>`:''}
@@ -946,6 +942,7 @@ function qRender(){
     <div id="qfb"></div></article></div></div>
    <div class="pact"><div class="pact-in"><button class="btn lg rp wide" id="qgo" ${q.as==='mc'?'disabled':''}>${I.check}ตรวจคำตอบ</button></div></div>`;
   $('#qx').onclick=()=>{ if(P.res.length&&!P.done) qFinish(); else qClose(); };
+  if($('#qstop')) $('#qstop').onclick=qFinish;
   let sel=-1;
   $$('#qp [data-op]').forEach(b=>b.onclick=()=>{ if(P.checked) return; sel=+b.dataset.op; $$('#qp [data-op]').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);}); $('#qgo').disabled=false; });
   const ins=$$('#qp .qin'); let focusI=0; ins.forEach((x,i)=>{ x.onfocus=()=>focusI=i; x.oninput=()=>{}; x.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); if(i<ins.length-1&&!x.value.trim()) return; if(i<ins.length-1) ins[i+1].focus(); else qCheck(); } }; });
@@ -981,11 +978,13 @@ function qCheck(){
     <button class="link sm rp" data-qpg="${q.pg||QT[q.t].pg}">${I.book}อ่านเรื่องนี้ในหนังสือ หน้า ${q.pg||QT[q.t].pg}</button>
    </section>`;
   $('#qp [data-qpg]').onclick=e=>bookZoom(+e.currentTarget.dataset.qpg);
-  const g=$('#qgo'); g.disabled=false; g.innerHTML=P.i<P.list.length-1?`ข้อถัดไป ${I.arrow}`:`${I.check}ดูสรุปผล`; g.focus({preventScroll:true});
+  const g=$('#qgo'); g.disabled=false; g.innerHTML=P.endless||P.i<P.list.length-1?`ข้อถัดไป ${I.arrow}`:`${I.check}ดูสรุปผล`; g.focus({preventScroll:true});
   const pst=$('#qp .pst'); if(pst) pst.innerHTML=I.check+P.ok;
   setTimeout(()=>fb.scrollIntoView({behavior:LITE?'auto':'smooth',block:'start'}),60);
 }
-function qNext(){ const P=QP; if(P.i<P.list.length-1){ P.i++; qRender(); const s=$('#qsc'); if(s) s.scrollTop=0; } else qFinish(); }
+function qNext(){ const P=QP;
+  if(P.endless&&P.i>=P.list.length-2){ const add=genList(P.endless.tps,5,P.endless.diff).filter(q=>!P.list.some(x=>x.id===q.id)); add.forEach((q,j)=>qAs(q,P.list.length+j)); P.list.push(...add); }
+  if(P.i<P.list.length-1){ P.i++; qRender(); const s=$('#qsc'); if(s) s.scrollTop=0; } else qFinish(); }
 function qFinish(){
   const P=QP; P.done=true; const n=P.res.length, ok=P.res.filter(r=>r.ok).length, p=n?Math.round(ok/n*100):0;
   ST.qz.last={title:P.title,ok,n,t:Date.now()};
@@ -1004,7 +1003,7 @@ function qFinish(){
   SFX.done();
   $('#qx').onclick=qClose;
   if($('#qs-wrong')) $('#qs-wrong').onclick=()=>{ const l=P.res.filter(r=>!r.ok).map(r=>Object.assign({},r.q)); QP={kind:'retry',title:'แก้ข้อที่ผิด',list:l,i:0,ok:0,streak:0,res:[],done:false}; openQuiz(); };
-  $('#qs-again').onclick=()=>{ if(P.kind==='retry'||P.kind==='wrong'){ const l=P.list.map(q=>Object.assign({},q)); QP={...P,list:shuf(l),i:0,ok:0,streak:0,res:[],done:false}; openQuiz(); } else startQuiz(P.kind==='gen'?'gen':P.kind); };
+  $('#qs-again').onclick=()=>{ if(P.kind==='retry'||P.kind==='wrong'){ const l=P.list.map(q=>Object.assign({},q)); QP={...P,list:shuf(l),i:0,ok:0,streak:0,res:[],done:false}; openQuiz(); } else startQuiz(P.kind,P.endless?{tps:P.endless.tps}:{}); };
 }
 addEventListener('keydown',e=>{ if(!QP||!$('#qp')) return; if(e.key==='Escape'){ e.preventDefault(); $('#qx')&&$('#qx').click(); }
   else if(e.key==='Enter'&&QP.checked&&!QP.done&&document.activeElement&&document.activeElement.id!=='qgo'){ e.preventDefault(); qNext(); }
@@ -1044,11 +1043,11 @@ function primeHTML(){
    <div class="ptitle"><div><h1>ปูพื้นฐานก่อนสอบ</h1><p>สรุปกฎทุกเรื่องของบทที่ 1 อ่านจบแล้วกดฝึกเรื่องนั้นได้ทันที</p></div></div>
    <nav class="pm-nav">${PRIME.map((s,i)=>`<a href="#pm-${s.id}" class="fchip rp" data-soft="1" data-pmj="${s.id}"><b class="num">${i+1}</b>${s.t}</a>`).join('')}</nav>
    ${PRIME.map((s,i)=>`<section class="pm panel" id="pm-${s.id}"><header><span class="pm-no num">${i+1}</span><h2>${s.t}</h2></header><div class="pm-b">${s.b}</div>
-    ${s.tp?`<footer><button class="btn sm rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้ 10 ข้อ</button><button class="btn ghost sm rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button></footer>`:''}</section>`).join('')}
-   <div class="cta-row"><button class="btn lg rp wide" data-qset="sheet">${I.play}พร้อมแล้ว ทำแบบฝึกหัดในชีท</button></div></div>`;
+    ${s.tp?`<footer><button class="btn sm rp" data-qone="${s.tp}">${I.play}ฝึกเรื่องนี้</button><button class="btn ghost sm rp" data-qpgz="${s.pg}">${I.book}หนังสือหน้า ${s.pg}</button></footer>`:''}</section>`).join('')}
+   <div class="cta-row"><button class="btn lg rp wide" data-qset="sh:1">${I.play}พร้อมแล้ว เริ่มชุดแนวชีท ชุดที่ 1</button></div></div>`;
 }
 function primeBind(){
-  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone],n:10}));
+  $$('[data-qone]').forEach(b=>b.onclick=()=>startQuiz('gen',{tps:[b.dataset.qone]}));
   $$('[data-qset]').forEach(b=>b.onclick=()=>startQuiz(b.dataset.qset));
   $$('[data-qpgz]').forEach(b=>b.onclick=()=>bookZoom(+b.dataset.qpgz));
   $$('[data-pmj]').forEach(a=>a.onclick=e=>{ e.preventDefault(); const t=$('#pm-'+a.dataset.pmj); if(t) scrollTo({top:t.getBoundingClientRect().top+scrollY-70,behavior:LITE?'auto':'smooth'}); });

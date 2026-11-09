@@ -700,6 +700,9 @@ svg{width:20px;height:20px;flex:none}
 .qp .pline{flex:1;border-radius:2px}
 .qp .pst{align-items:center;gap:3px;color:var(--good);font-weight:700}.qp .pst svg{width:16px;height:16px}
 .qgen .btn{flex:none;margin-top:6px}
+.qp .qn-end{font-family:var(--f-cute);font-size:17px}
+.qp #qstop{height:36px;padding:0 12px;font-size:13.5px;box-shadow:none}
+.qp .top-sp{flex:1}
 .qp .qcard{display:flex;flex-direction:column;gap:12px}
 .qmeta{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
 .qtopic,.qsrc,.qtype{font-size:12px;font-weight:600;padding:2px 10px;border-radius:10px;background:var(--surface-2);color:var(--ink-2)}
