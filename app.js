@@ -943,10 +943,8 @@ function quizHTML(){
    ${zone(1,'เตรียมตัว','อ่านสรุปกฎก่อน แล้วค่อยลุยข้อสอบ',I.bulb,'z0')}
    ${primeBanner()}
 
-   ${zone(2,'ทำข้อสอบ','ทำเป็นชุด เหมือนสอบจริง จบแล้วดูคะแนนและเฉลย',I.quiz,'z1')}
+   ${zone(2,'ข้อสอบทฤษฎี','ช้อยส์ล้วน ทำได้ทันที ตอบผิดมีเฉลยพร้อมเหตุผล',I.quiz,'z1')}
    ${theoryCard()}
-   ${setCard('sh','ข้อสอบแนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีทแบบฝึกหัด ข้อ 1 ถึง 4.4','พิมพ์ตอบ + ช้อยส์')}
-   ${setCard('sl','ข้อสอบแนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์','พิมพ์ตอบ + ช้อยส์')}
 
    ${zone(3,'ฝึกซ้อม','ไม่จำกัดจำนวนข้อ อยากหยุดตอนไหนกด "หยุดและดูสรุป"',I.dice,'z2')}
    ${Z.wrong.length?`<button class="qmode warn rp" data-qset="wrong"><span class="qm-ic">${I.alert}</span><span><b>ทำข้อที่เคยผิดอีกครั้ง</b><small class="num">${Z.wrong.length} ข้อ ตอบถูกแล้วจะออกจากรายการ</small></span>${I.play}</button>`:''}
@@ -958,8 +956,11 @@ function quizHTML(){
    <section class="zcard"><h3 class="zc-t">${I.list||I.book}ฝึกทีละเรื่อง</h3><p class="zc-d">แตะเรื่องที่อยากฝึก</p>
     <div class="list">${Object.entries(QT).map(([k,t])=>{const a=tpAcc(k),s=Z.tp[k];return `<button class="trow rp" data-qone="${k}"><span class="trow-b"><b>${t.n}</b><small class="num">${s?`ทำแล้ว ${s.all} ข้อ`:'ยังไม่เคยทำ'}</small></span><span class="macc num ${a==null?'new':a>=80?'hi':a>=50?'mid':'lo'}">${a==null?'ใหม่':a+'%'}</span><span class="trow-go">${I.play}</span></button>`;}).join('')}</div></section>
 
-   ${zone(4,'บทอื่น','กำลังทำ เร็วๆ นี้',I.lock,'z3')}
-   <div class="fchips">${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="fchip rp" data-soon="${c.id}">บทที่ ${c.id} <i class="mc-tag">soon</i></button>`).join('')}</div></div>`;
+   ${zone(4,'ข้อสอบทั้งหมด','ข้อสอบเป็นชุด แยกตามบท ทำจบแล้วดูคะแนนและเฉลย',I.quiz,'z1')}
+   <section class="xcard bank"><header><span class="sc-ic">${I.book}</span><div><h3>บทที่ 1</h3><p>เลขโรมัน และเลขนัยสำคัญ</p></div></header>
+    ${bankRow('sh','แนวชีท','ชุดละ 40 ข้อ เรียงเหมือนชีท ข้อ 1 ถึง 4.4')}
+    ${bankRow('sl','แนวตัวอย่างในสไลด์','ชุดละ 30 ข้อ ไล่ตามหัวข้อในสไลด์')}</section>
+   ${CHAPTERS.filter(c=>!c.ready).map(c=>`<button class="xrow soon rp" data-soon="${c.id}"><span class="sc-ic">${I.lock}</span><span><b>บทที่ ${c.id}</b><small>${esc(c.name||'')}</small></span><i class="mc-tag">soon</i></button>`).join('')}</div>`;
 }
 function primeBanner(){ const n=pmRead(), N=PRIME_L.length;
   return `<button class="pban rp" data-tab="prime" aria-label="ปูพื้นฐานก่อนสอบ อ่านแล้ว ${n} จาก ${N} บท">
@@ -981,6 +982,9 @@ function setCard(k,t,d,tag){ const S=ST.qz.sets||{}; const done=Array.from({leng
    <div class="sc-st"><div><b class="num">${done.length}/${NSETS}</b><small>ชุดที่ทำแล้ว</small></div><div><b class="num">${avg==null?'–':avg+'%'}</b><small>คะแนนเฉลี่ย</small></div></div>
    <button class="btn lg rp wide" data-qset="${k}:${nx}">${I.play}เริ่มชุดที่ ${nx}</button>
    <details class="sc-more"><summary class="rp">เลือกชุดเอง / ดูคะแนนแต่ละชุด ${I.down}</summary>${setGrid(k)}</details></section>`; }
+function bankRow(k,t,d){ const S=ST.qz.sets||{}; const done=Array.from({length:NSETS},(_,i)=>S[k+':'+(i+1)]).filter(Boolean);
+  const avg=done.length?Math.round(done.reduce((a,r)=>a+r.best/r.n,0)/done.length*100):null;
+  return `<details class="brow"><summary class="rp"><span><b>${t}</b><small>${d}</small><small class="num">ทำแล้ว ${done.length}/${NSETS} ชุด${avg!=null?' · เฉลี่ย '+avg+'%':''}</small></span>${I.down}</summary>${setGrid(k)}</details>`; }
 function setGrid(k,t,d){ const S=ST.qz.sets||{};
   return `<div class="setgrid">${Array.from({length:NSETS},(_,i)=>{const id=k+':'+(i+1),r=S[id],p=r?Math.round(r.best/r.n*100):null;
     return `<button class="setc rp ${r?(p>=80?'hi':p>=50?'mid':'lo'):''}" data-qset="${id}" aria-label="ชุดที่ ${i+1}${r?` คะแนนดีสุด ${p}%`:''}"><b class="num">${i+1}</b><small class="num">${r?p+'%':'ใหม่'}</small></button>`;}).join('')}</div>`; }
